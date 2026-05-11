@@ -9,7 +9,10 @@ const path = require('path');
 
 const schemaPath = path.join(__dirname, '..', 'prisma', 'schema.prisma');
 const dbUrl = process.env.DATABASE_URL || '';
-const isPostgres = dbUrl.startsWith('postgresql') || dbUrl.startsWith('postgres');
+// No DATABASE_URL at build time (Docker) → default to PostgreSQL (production).
+// SQLite only when explicitly set to file: (local dev).
+const isSQLite = dbUrl.startsWith('file:');
+const isPostgres = !isSQLite;
 
 let schema = fs.readFileSync(schemaPath, 'utf8');
 
