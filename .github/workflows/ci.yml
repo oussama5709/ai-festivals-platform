@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  actor-tests:
+    name: Apify Actor Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./actor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: actor/package-lock.json
+      - run: npm ci
+      - run: npm test
+
+  api-build:
+    name: API Build (TypeScript)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: api/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run build
+
+  frontend-build:
+    name: Frontend Build (Next.js)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    env:
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NEXT_PUBLIC_APIFY_ACTOR_URL: https://console.apify.com/actors/placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  apify-deploy:
+    name: Deploy to Apify
+    runs-on: ubuntu-latest
+    needs: [actor-tests, api-build, frontend-build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    defaults:
+      run:
+        working-directory: ./actor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install -g apify-cli
+      - run: apify login --token ${{ secrets.APIFY_API_TOKEN }}
+      - run: apify push --no-prompt
+        continue-on-error: true

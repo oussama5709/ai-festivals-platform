@@ -1,0 +1,48 @@
+{
+  "name": "ai-festivals-scraper",
+  "version": "1.0.0",
+  "title": "AI Festivals & Conferences Scraper",
+  "description": "🤖 جامع ذكي لمهرجانات وأحداث الذكاء الاصطناعي حول العالم | Intelligent AI Festivals, Conferences & Events Scraper from Multiple Sources Worldwide",
+  "author": "Your Name",
+  "keywords": [
+    "ai",
+    "artificial-intelligence",
+    "conferences",
+    "festivals",
+    "events",
+    "scraper",
+    "eventbrite",
+    "meetup",
+    "worldwide",
+    "machine-learning",
+    "neurips",
+    "icml",
+    "iccv",
+    "aaai",
+    "technology"
+  ],
+  "privacy": "PRIVATE",
+  "main": "./main.js",
+  "dependencies": {
+    "apify": "^3.0.0",
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "node main.js",
+    "test": "echo \"No tests specified\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/ai-festivals-scraper"
+  },
+  "license": "MIT",
+  "apify": {
+    "name": "ai-festivals-scraper",
+    "storageDir": "./storage",
+    "env": {
+      "APIFY_HEADLESS": "1"
+    }
+  }
+}

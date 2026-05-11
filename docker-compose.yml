@@ -1,0 +1,136 @@
+version: '3.9'
+
+# ── Shared network ──────────────────────────────────────────────────────────
+networks:
+  app-network:
+    driver: bridge
+
+# ── Persistent volumes ──────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+  redis_data:
+
+services:
+
+  # ── PostgreSQL ─────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: ai_festivals_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ai_festivals
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [app-network]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ai_festivals"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis (caching) ────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: ai_festivals_redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks: [app-network]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ── API (Express + Prisma) ─────────────────────────────────────────────────
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: ai_festivals_api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/ai_festivals
+      REDIS_URL: redis://redis:6379
+      APIFY_API_TOKEN: ${APIFY_API_TOKEN}
+      APIFY_ACTOR_ID: ${APIFY_ACTOR_ID}
+      API_KEY: ${API_KEY:-changeme}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [app-network]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── Frontend (Next.js) ────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3001
+    container_name: ai_festivals_frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://api:3001
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [app-network]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  # ── Database migration runner (runs once then exits) ───────────────────────
+  migrate:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: ai_festivals_migrate
+    command: ["npx", "prisma", "migrate", "deploy"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/ai_festivals
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [app-network]
+    restart: "no"
+
+  # ── Seed runner (runs once then exits) ────────────────────────────────────
+  seed:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: ai_festivals_seed
+    command: ["npx", "prisma", "db", "seed"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/ai_festivals
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks: [app-network]
+    restart: "no"

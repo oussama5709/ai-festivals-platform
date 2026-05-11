@@ -1,0 +1,175 @@
+{
+  "name": "AI Festivals Scraper with n8n",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [50, 300]
+    },
+    {
+      "parameters": {
+        "actorId": "{{YOUR_ACTOR_ID}}",
+        "runMode": "regular",
+        "input": {
+          "searchRegions": [
+            "worldwide"
+          ],
+          "upcomingOnly": true,
+          "minDate": "2025-03-03",
+          "maxResults": 100,
+          "includeEventTypes": [
+            "conference",
+            "workshop",
+            "webinar"
+          ],
+          "dataSources": [
+            "eventbrite",
+            "meetup",
+            "official-websites"
+          ],
+          "language": "ar",
+          "outputFormat": "json"
+        }
+      },
+      "name": "Run Apify Actor",
+      "type": "apify",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "credentials": {
+        "apifyApi": "{{YOUR_APIFY_API_KEY}}"
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// معالجة النتائج من Apify\nconst data = $input.all();\n\n// استخرج الأحداث\nconst events = data[0].json.events || [];\nconst summary = data[0].json.summary || {};\n\n// رشح الأحداث حسب التاريخ\nconst upcomingEvents = events.filter(event => {\n  const eventDate = new Date(event.dateInfo);\n  const today = new Date();\n  return eventDate > today;\n});\n\n// تجميع حسب المنطقة\nconst eventsByRegion = {};\nupcomingEvents.forEach(event => {\n  const region = event.region || 'unknown';\n  if (!eventsByRegion[region]) {\n    eventsByRegion[region] = [];\n  }\n  eventsByRegion[region].push(event);\n});\n\n// تجميع حسب النوع\nconst eventsByType = {};\nupcomingEvents.forEach(event => {\n  const category = event.category || 'unknown';\n  if (!eventsByType[category]) {\n    eventsByType[category] = 0;\n  }\n  eventsByType[category]++;\n});\n\nreturn {\n  totalEvents: upcomingEvents.length,\n  summary: {\n    ...summary,\n    upcomingEvents: upcomingEvents.length,\n    generatedAt: new Date().toISOString()\n  },\n  eventsByRegion,\n  eventsByType,\n  events: upcomingEvents\n};"
+      },
+      "name": "Process Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "ai_festivals",
+        "fields": {
+          "name": "={{ $node[\\\"Process Data\\\"].json.summary.totalEvents }}",
+          "data": "={{ JSON.stringify($node[\\\"Process Data\\\"].json) }}",
+          "createdAt": "={{ new Date().toISOString() }}",
+          "updatedAt": "={{ new Date().toISOString() }}"
+        }
+      },
+      "name": "Save to MongoDB",
+      "type": "n8n-nodes-base.mongodb",
+      "typeVersion": 1,
+      "position": [650, 200],
+      "credentials": {
+        "mongoDb": "{{YOUR_MONGODB_CONNECTION}}"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "spreadsheetId": "{{YOUR_GOOGLE_SHEET_ID}}",
+        "range": "A1",
+        "options": {}
+      },
+      "name": "Update Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [650, 400],
+      "credentials": {
+        "googleSheetsOAuth2": "{{YOUR_GOOGLE_SHEETS_CREDENTIALS}}"
+      }
+    },
+    {
+      "parameters": {
+        "channel": "#ai-festivals",
+        "text": "تم جمع {{ $node[\\\"Process Data\\\"].json.totalEvents }} حدث AI جديد! \\n📊 الملخص:\\n• المؤتمرات: {{ Object.values($node[\\\"Process Data\\\"].json.eventsByType).reduce((a,b) => a+b, 0) }}\\n• المناطق: {{ Object.keys($node[\\\"Process Data\\\"].json.eventsByRegion).length }}\\n\\n✅ تم حفظ البيانات بنجاح!",
+        "otherOptions": {}
+      },
+      "name": "Send Slack Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [650, 600],
+      "credentials": {
+        "slackApi": "{{YOUR_SLACK_TOKEN}}"
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "notifications@example.com",
+        "to": "team@example.com",
+        "subject": "🤖 تقرير أحداث الذكاء الاصطناعي الجديدة",
+        "htmlBody": "<h2>تقرير الأحداث الجديدة</h2>\\n<p><strong>إجمالي الأحداث:</strong> {{ $node[\\\"Process Data\\\"].json.totalEvents }}</p>\\n<p><strong>التاريخ:</strong> {{ $node[\\\"Process Data\\\"].json.summary.generatedAt }}</p>\\n<h3>الأحداث حسب المنطقة:</h3>\\n<ul>\\n{{ Object.entries($node[\\\"Process Data\\\"].json.eventsByRegion).map(([region, events]) => `<li>${region}: ${events.length} حدث</li>`).join('') }}\\n</ul>"
+      },
+      "name": "Send Email Report",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [850, 300],
+      "credentials": {
+        "smtp": "{{YOUR_SMTP_CREDENTIALS}}"
+      }
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Run Apify Actor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Apify Actor": {
+      "main": [
+        [
+          {
+            "node": "Process Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Data": {
+      "main": [
+        [
+          {
+            "node": "Save to MongoDB",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update Google Sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Slack Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Email Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "instanceId": "ai-festivals-n8n-workflow"
+  }
+}
