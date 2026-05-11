@@ -1,12 +1,9 @@
 import axios from 'axios';
-import twilio from 'twilio';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
-const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
-const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
-const TWILIO_WHATSAPP_NUMBER = process.env.TWILIO_WHATSAPP_NUMBER ?? 'whatsapp:+14155238886';
-const USER_WHATSAPP = 'whatsapp:+21626314325';
+const CALLMEBOT_API_KEY = process.env.CALLMEBOT_API_KEY;
+const USER_PHONE = '21626314325'; // without +
 
 export async function sendTelegramAlert(message: string): Promise<void> {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
@@ -21,16 +18,14 @@ export async function sendTelegramAlert(message: string): Promise<void> {
 }
 
 export async function sendWhatsAppAlert(message: string): Promise<void> {
-  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
-    console.warn('[Notify] Twilio not configured — skipping.');
+  if (!CALLMEBOT_API_KEY) {
+    console.warn('[Notify] CallMeBot not configured — skipping.');
     return;
   }
-  const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-  await client.messages.create({
-    from: TWILIO_WHATSAPP_NUMBER,
-    to: USER_WHATSAPP,
-    body: message,
-  });
+  const encoded = encodeURIComponent(message);
+  await axios.get(
+    `https://api.callmebot.com/whatsapp.php?phone=${USER_PHONE}&text=${encoded}&apikey=${CALLMEBOT_API_KEY}`
+  );
 }
 
 interface FilmEvent {
