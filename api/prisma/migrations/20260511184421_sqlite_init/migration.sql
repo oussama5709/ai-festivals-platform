@@ -1,10 +1,10 @@
 -- CreateTable
 CREATE TABLE "Event" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "description" TEXT,
-    "date" DATETIME,
-    "endDate" DATETIME,
+    "date" TIMESTAMP(3),
+    "endDate" TIMESTAMP(3),
     "location" TEXT,
     "isOnline" BOOLEAN NOT NULL DEFAULT false,
     "url" TEXT,
@@ -12,23 +12,27 @@ CREATE TABLE "Event" (
     "region" TEXT NOT NULL,
     "regionArabic" TEXT,
     "category" TEXT NOT NULL,
-    "qualityScore" REAL NOT NULL,
-    "scrapedAt" DATETIME NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "qualityScore" DOUBLE PRECISION NOT NULL,
+    "scrapedAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Event_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "ScrapeRun" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "apifyRunId" TEXT NOT NULL,
     "status" TEXT NOT NULL,
     "eventsFound" INTEGER NOT NULL DEFAULT 0,
     "regions" TEXT NOT NULL,
-    "startedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "completedAt" DATETIME,
+    "startedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "completedAt" TIMESTAMP(3),
     "durationMs" INTEGER,
-    "errorMessage" TEXT
+    "errorMessage" TEXT,
+
+    CONSTRAINT "ScrapeRun_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
