@@ -2,8 +2,9 @@ import axios from 'axios';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
-const CALLMEBOT_API_KEY = process.env.CALLMEBOT_API_KEY;
-const USER_PHONE = '21626314325'; // without +
+const ULTRAMSG_INSTANCE = process.env.ULTRAMSG_INSTANCE || 'instance174679';
+const ULTRAMSG_TOKEN = process.env.ULTRAMSG_TOKEN;
+const USER_PHONE = '+21626314325';
 
 export async function sendTelegramAlert(message: string): Promise<void> {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
@@ -18,13 +19,14 @@ export async function sendTelegramAlert(message: string): Promise<void> {
 }
 
 export async function sendWhatsAppAlert(message: string): Promise<void> {
-  if (!CALLMEBOT_API_KEY) {
-    console.warn('[Notify] CallMeBot not configured — skipping.');
+  if (!ULTRAMSG_TOKEN) {
+    console.warn('[Notify] UltraMsg not configured — skipping.');
     return;
   }
-  const encoded = encodeURIComponent(message);
-  await axios.get(
-    `https://api.callmebot.com/whatsapp.php?phone=${USER_PHONE}&text=${encoded}&apikey=${CALLMEBOT_API_KEY}`
+  await axios.post(
+    `https://api.ultramsg.com/${ULTRAMSG_INSTANCE}/messages/chat`,
+    { token: ULTRAMSG_TOKEN, to: USER_PHONE, body: message },
+    { headers: { 'Content-Type': 'application/json' } }
   );
 }
 
