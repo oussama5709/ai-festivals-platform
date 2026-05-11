@@ -5,6 +5,8 @@ import eventsRouter from './routes/events';
 import scrapeRouter from './routes/scrape';
 import statsRouter from './routes/stats';
 import webhookRouter from './routes/webhook';
+import adminRouter from './routes/admin';
+import { autoSeed } from './startup/autoSeed';
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -26,13 +28,15 @@ app.use('/api/events', eventsRouter);
 app.use('/api/scrape', scrapeRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/webhook', webhookRouter);
+app.use('/api/admin', adminRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`API running on port ${PORT}`);
+  await autoSeed();
 });
 
 export default app;
