@@ -4,6 +4,6 @@
   "outputDirectory": ".next",
   "installCommand": "npm ci",
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://ai-festivals-api.onrender.com"
+    "NEXT_PUBLIC_API_URL": "https://ai-festivals-platform.onrender.com"
   }
 }
