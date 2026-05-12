@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ai-festivals-platform.vercel.app/sitemap.xml
