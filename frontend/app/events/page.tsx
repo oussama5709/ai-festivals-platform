@@ -7,7 +7,7 @@ import SkeletonCard from '@/components/SkeletonCard';
 import FilterSidebar, { Filters } from '@/components/FilterSidebar';
 import { fetchEvents, fetchRegions, Event, EventsResponse } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { Grid3X3, List, SortAsc, AlertCircle, SearchX } from 'lucide-react';
+import { Grid3X3, List, SortAsc, SearchX } from 'lucide-react';
 
 const DEFAULT_FILTERS: Filters = {
   search: '',
@@ -30,9 +30,11 @@ export default function EventsPage() {
   const [page, setPage] = useState(1);
   const [data, setData] = useState<EventsResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [waking, setWaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [regionCounts, setRegionCounts] = useState<Record<string, number>>({});
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wakingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     fetchRegions()
@@ -47,6 +49,9 @@ export default function EventsPage() {
   const load = useCallback(async (f: Filters, s: SortOption, p: number) => {
     setLoading(true);
     setError(null);
+    setWaking(false);
+    if (wakingRef.current) clearTimeout(wakingRef.current);
+    wakingRef.current = setTimeout(() => setWaking(true), 4000);
     try {
       const result = await fetchEvents({
         search: f.search || undefined,
@@ -63,12 +68,10 @@ export default function EventsPage() {
       setData(result);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '';
-      setError(
-        msg === 'API_WAKING_UP'
-          ? 'WAKING_UP'
-          : "We're having trouble loading events. Try refreshing in a moment."
-      );
+      setError(msg === 'API_WAKING_UP' ? 'WAKING_UP' : (msg || 'Failed to load events'));
     } finally {
+      if (wakingRef.current) clearTimeout(wakingRef.current);
+      setWaking(false);
       setLoading(false);
     }
   }, []);
@@ -159,37 +162,43 @@ export default function EventsPage() {
           </div>
 
           {/* Error state */}
-          {error && error === 'WAKING_UP' && (
-            <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
-              <div className="text-4xl">⏳</div>
-              <h2 className="text-xl font-medium text-foreground">API is waking up...</h2>
+          {error && (
+            <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
+              <div className="text-5xl">{error === 'WAKING_UP' ? '⏳' : '⚠️'}</div>
+              <h2 className="text-xl font-medium text-foreground">
+                {error === 'WAKING_UP' ? 'API is waking up...' : 'Could not load events'}
+              </h2>
               <p className="text-muted-foreground text-sm max-w-sm">
-                Our server was sleeping. It takes about 30 seconds to start. Please wait and refresh.
+                {error === 'WAKING_UP'
+                  ? 'Our server takes ~30 seconds to start after inactivity. Please wait a moment and try again.'
+                  : `Error: ${error}`}
               </p>
               <button
-                onClick={() => window.location.reload()}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm hover:opacity-90 transition-opacity"
+                onClick={() => load(filters, sort, page)}
+                className="mt-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm hover:opacity-90 active:scale-95 transition-all"
               >
-                Refresh now
+                Try again
               </button>
-            </div>
-          )}
-          {error && error !== 'WAKING_UP' && (
-            <div className="flex items-start gap-3 p-4 rounded-xl border border-red-900/40 bg-red-950/20 text-red-400 text-sm" role="alert">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
-              <p>{error}</p>
             </div>
           )}
 
           {/* Loading skeletons */}
           {loading && (
-            <div className={cn(
-              'grid gap-4',
-              view === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'
-            )} aria-label="Loading events">
-              {Array.from({ length: 9 }).map((_, i) => (
-                <SkeletonCard key={i} />
-              ))}
+            <div className="flex flex-col gap-4">
+              {waking && (
+                <div className="flex items-center gap-2 text-sm text-amber-500 bg-amber-950/30 border border-amber-900/40 px-4 py-2.5 rounded-lg" role="status">
+                  <span className="animate-pulse">⏳</span>
+                  API is starting up — usually takes 20–30 seconds on first load...
+                </div>
+              )}
+              <div className={cn(
+                'grid gap-4',
+                view === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'
+              )} aria-label="Loading events">
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <SkeletonCard key={i} />
+                ))}
+              </div>
             </div>
           )}
 
