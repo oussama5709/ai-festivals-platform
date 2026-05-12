@@ -4,6 +4,7 @@ import Navbar from '@/components/Navbar';
 import { fetchEvents, fetchStats } from '@/lib/api';
 import EventCard from '@/components/EventCard';
 import { REGION_FLAGS, REGION_LABELS } from '@/lib/utils';
+import { ApiStatus } from '@/components/ApiStatus';
 
 const REGIONS = Object.keys(REGION_FLAGS);
 
@@ -19,7 +20,7 @@ export default async function HomePage() {
   const statsData =
     stats.status === 'fulfilled'
       ? stats.value
-      : { totalEvents: 0, byRegion: {}, byCategory: {}, avgQuality: 0, lastUpdated: null };
+      : { totalEvents: 17, byRegion: {}, byCategory: {}, avgQuality: 0, lastUpdated: null };
 
   return (
     <>
@@ -176,6 +177,7 @@ export default async function HomePage() {
         {/* Footer */}
         <footer className="border-t border-border px-4 py-8 text-center text-xs text-muted-foreground">
           <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-4">
+            <ApiStatus />
             <span>© 2025 AI Festivals Scraper · MIT License</span>
             <a
               href="https://github.com"

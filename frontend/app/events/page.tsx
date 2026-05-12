@@ -61,8 +61,13 @@ export default function EventsPage() {
         limit: 21,
       });
       setData(result);
-    } catch {
-      setError("We're having trouble loading events right now. Try refreshing in a moment.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '';
+      setError(
+        msg === 'API_WAKING_UP'
+          ? 'WAKING_UP'
+          : "We're having trouble loading events. Try refreshing in a moment."
+      );
     } finally {
       setLoading(false);
     }
@@ -154,7 +159,22 @@ export default function EventsPage() {
           </div>
 
           {/* Error state */}
-          {error && (
+          {error && error === 'WAKING_UP' && (
+            <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
+              <div className="text-4xl">⏳</div>
+              <h2 className="text-xl font-medium text-foreground">API is waking up...</h2>
+              <p className="text-muted-foreground text-sm max-w-sm">
+                Our server was sleeping. It takes about 30 seconds to start. Please wait and refresh.
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm hover:opacity-90 transition-opacity"
+              >
+                Refresh now
+              </button>
+            </div>
+          )}
+          {error && error !== 'WAKING_UP' && (
             <div className="flex items-start gap-3 p-4 rounded-xl border border-red-900/40 bg-red-950/20 text-red-400 text-sm" role="alert">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
               <p>{error}</p>

@@ -7,6 +7,7 @@ import statsRouter from './routes/stats';
 import webhookRouter from './routes/webhook';
 import adminRouter from './routes/admin';
 import { autoSeed } from './startup/autoSeed';
+import { startKeepAlive, startDailyScrape } from './jobs/keepAlive';
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -37,6 +38,10 @@ app.use((_req, res) => {
 app.listen(PORT, async () => {
   console.log(`API running on port ${PORT}`);
   await autoSeed();
+  if (process.env.NODE_ENV === 'production') {
+    startKeepAlive();
+    startDailyScrape();
+  }
 });
 
 export default app;

@@ -59,18 +59,31 @@ export interface EventsQuery {
 }
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error((body as { error?: string }).error ?? `Request failed: ${res.status}`);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+
+  try {
+    const res = await fetch(`${API_URL}${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    });
+    clearTimeout(timer);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error((body as { error?: string }).error ?? `Request failed: ${res.status}`);
+    }
+    return res.json() as Promise<T>;
+  } catch (err) {
+    clearTimeout(timer);
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error('API_WAKING_UP');
+    }
+    throw err;
   }
-  return res.json() as Promise<T>;
 }
 
 export async function fetchEvents(query: EventsQuery = {}): Promise<EventsResponse> {
