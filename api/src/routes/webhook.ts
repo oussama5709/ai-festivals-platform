@@ -1,30 +1,64 @@
 import { Router, Request, Response } from 'express';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { fetchDatasetItems } from '../services/apifyService';
 import { upsertEvents, updateScrapeRun } from '../services/eventService';
 import { invalidateCache } from '../services/cacheService';
-import { notifyUser } from '../services/notificationService';
-import { Prisma } from '@prisma/client';
+import { notifyUser, sendTelegramAlert } from '../services/notificationService';
+import { dbCircuit } from '../jobs/retry';
+import { updateHealthFromRun } from '../jobs/monitor';
 
 const router = Router();
+const prisma = new PrismaClient();
+
+function log(event: string, data?: object) {
+  console.log(JSON.stringify({ ts: new Date().toISOString(), event, ...data }));
+}
 
 router.post('/apify', async (req: Request, res: Response) => {
-  try {
-    const { eventType, eventData } = req.body as {
-      eventType: string;
-      eventData: { actorRunId: string; defaultDatasetId: string; status: string };
-    };
+  const { eventType, eventData } = req.body as {
+    eventType: string;
+    eventData: { actorRunId: string; defaultDatasetId: string; status: string };
+  };
 
-    if (eventType !== 'ACTOR.RUN.SUCCEEDED') {
-      await updateScrapeRun(eventData.actorRunId, {
+  const runId = eventData?.actorRunId;
+  log('webhook.received', { eventType, runId });
+
+  // ── Idempotency: skip if already succeeded ────────────────────────────────
+  try {
+    const existing = await prisma.scrapeRun.findUnique({ where: { apifyRunId: runId } });
+    if (existing?.status === 'succeeded') {
+      log('webhook.duplicate', { runId });
+      res.json({ ok: true, duplicate: true });
+      return;
+    }
+  } catch {
+    // non-fatal — proceed
+  }
+
+  if (eventType !== 'ACTOR.RUN.SUCCEEDED') {
+    try {
+      await updateScrapeRun(runId, {
         status: eventData.status.toLowerCase(),
         completedAt: new Date(),
         errorMessage: eventType === 'ACTOR.RUN.FAILED' ? 'Actor run failed' : undefined,
       });
-      res.json({ ok: true });
+      updateHealthFromRun('failed');
+    } catch (err) {
+      log('webhook.update_failed', { runId, error: (err as Error).message });
+    }
+    res.json({ ok: true });
+    return;
+  }
+
+  try {
+    const startTime = Date.now();
+
+    if (dbCircuit.isOpen()) {
+      log('webhook.circuit_open', { runId });
+      res.status(503).json({ error: 'DB circuit open — retry later' });
       return;
     }
 
-    const startTime = Date.now();
     const items = await fetchDatasetItems(eventData.defaultDatasetId);
 
     const mapped: Prisma.EventCreateInput[] = (items as Record<string, unknown>[]).map((item) => ({
@@ -44,26 +78,40 @@ router.post('/apify', async (req: Request, res: Response) => {
     }));
 
     const saved = await upsertEvents(mapped);
+    dbCircuit.onSuccess();
     invalidateCache();
 
-    // Notify for film/cinema events (non-blocking)
     for (const event of mapped) {
-      if (event.title.includes('Film') || event.title.includes('Cinema') ||
-          event.title.includes('فيلم') || event.title.includes('سينما')) {
+      if (
+        event.title.includes('Film') || event.title.includes('Cinema') ||
+        event.title.includes('فيلم') || event.title.includes('سينما')
+      ) {
         notifyUser(event);
       }
     }
 
-    await updateScrapeRun(eventData.actorRunId, {
+    const durationMs = Date.now() - startTime;
+
+    await updateScrapeRun(runId, {
       status: 'succeeded',
       eventsFound: saved,
       completedAt: new Date(),
-      durationMs: Date.now() - startTime,
+      durationMs,
     });
 
+    updateHealthFromRun('succeeded');
+
+    await sendTelegramAlert(
+      `✅ <b>AI Festivals — Webhook processed</b>\n` +
+      `Saved <b>${saved}</b> events in ${Math.round(durationMs / 1000)}s.`
+    ).catch(() => {});
+
+    log('webhook.succeeded', { runId, saved, durationMs });
     res.json({ ok: true, saved });
   } catch (err) {
-    console.error('Webhook error:', err);
+    dbCircuit.onFailure();
+    updateHealthFromRun('failed');
+    log('webhook.error', { runId, error: (err as Error).message });
     res.status(500).json({ error: 'Webhook processing failed.' });
   }
 });

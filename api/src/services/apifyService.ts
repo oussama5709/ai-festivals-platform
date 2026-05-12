@@ -37,3 +37,14 @@ export async function getRunStatus(runId: string): Promise<string> {
   });
   return response.data.data.status;
 }
+
+export async function getRunDatasetId(runId: string): Promise<string | null> {
+  const response = await axios.get(`${BASE_URL}/actor-runs/${runId}`, {
+    headers: { Authorization: `Bearer ${APIFY_API_TOKEN}` },
+  });
+  return response.data.data.defaultDatasetId ?? null;
+}
+
+export function isApifyConfigured(): boolean {
+  return Boolean(APIFY_API_TOKEN && APIFY_ACTOR_ID);
+}
