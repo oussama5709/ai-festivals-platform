@@ -54,11 +54,22 @@ export const CATEGORY_LABELS: Record<string, string> = {
   course: 'Course',
 };
 
+export const CATEGORY_COLORS: Record<string, string> = {
+  conference: 'bg-violet-900/40 text-violet-300 border border-violet-800/50',
+  workshop: 'bg-blue-900/40 text-blue-300 border border-blue-800/50',
+  webinar: 'bg-sky-900/40 text-sky-300 border border-sky-800/50',
+  meetup: 'bg-emerald-900/40 text-emerald-300 border border-emerald-800/50',
+  summit: 'bg-amber-900/40 text-amber-300 border border-amber-800/50',
+  hackathon: 'bg-rose-900/40 text-rose-300 border border-rose-800/50',
+  course: 'bg-teal-900/40 text-teal-300 border border-teal-800/50',
+  default: 'bg-secondary text-secondary-foreground',
+};
+
 export const SOURCE_COLORS: Record<string, string> = {
-  'eventbrite.com': 'bg-orange-100 text-orange-700',
-  'meetup.com': 'bg-red-100 text-red-700',
-  'neurips.cc': 'bg-purple-100 text-purple-700',
-  'icml.cc': 'bg-blue-100 text-blue-700',
-  'thecvf.com': 'bg-indigo-100 text-indigo-700',
-  default: 'bg-gray-100 text-gray-600',
+  'eventbrite.com': 'bg-orange-900/40 text-orange-300 border border-orange-800/50',
+  'meetup.com': 'bg-red-900/40 text-red-300 border border-red-800/50',
+  'neurips.cc': 'bg-purple-900/40 text-purple-300 border border-purple-800/50',
+  'icml.cc': 'bg-blue-900/40 text-blue-300 border border-blue-800/50',
+  'thecvf.com': 'bg-indigo-900/40 text-indigo-300 border border-indigo-800/50',
+  default: 'bg-secondary text-muted-foreground border border-border',
 };

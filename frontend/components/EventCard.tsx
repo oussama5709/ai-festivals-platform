@@ -11,6 +11,7 @@ import {
   qualityLabel,
   REGION_FLAGS,
   CATEGORY_LABELS,
+  CATEGORY_COLORS,
   SOURCE_COLORS,
 } from '@/lib/utils';
 
@@ -40,7 +41,12 @@ export default function EventCard({ event, index = 0 }: EventCardProps) {
           >
             {event.source}
           </span>
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
+          <span
+            className={cn(
+              'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
+              CATEGORY_COLORS[event.category] ?? CATEGORY_COLORS['default']
+            )}
+          >
             {CATEGORY_LABELS[event.category] ?? event.category}
           </span>
         </div>
