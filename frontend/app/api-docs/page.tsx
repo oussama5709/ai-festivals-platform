@@ -145,7 +145,7 @@ export default function ApiDocsPage() {
           <p className="text-muted-foreground">
             REST API for querying AI events. Base URL:{' '}
             <code className="text-xs bg-secondary px-1.5 py-0.5 rounded font-mono">
-              {process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'}
+              https://ai-festivals-platform.onrender.com
             </code>
           </p>
 
