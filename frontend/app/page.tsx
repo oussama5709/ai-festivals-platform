@@ -1,31 +1,39 @@
 import Link from 'next/link';
 import { Search, Zap, Globe, Database, RefreshCw } from 'lucide-react';
 import Navbar from '@/components/Navbar';
-import EventCard from '@/components/EventCard';
 import { REGION_FLAGS, REGION_LABELS } from '@/lib/utils';
 import { ApiStatus } from '@/components/ApiStatus';
-import { serverFetch } from '@/lib/fetchWithTimeout';
-import type { EventsResponse, Stats } from '@/lib/api';
 
 const REGIONS = Object.keys(REGION_FLAGS);
 
-export const revalidate = 0;
+const FEATURED_EVENTS = [
+  {
+    title: 'NeurIPS 2025',
+    category: 'Conference',
+    location: 'New Orleans, USA',
+    date: 'Dec 9–15, 2025',
+    url: 'https://nips.cc',
+    quality: 0.95,
+  },
+  {
+    title: 'ICML 2025',
+    category: 'Conference',
+    location: 'Vienna, Austria',
+    date: 'Jul 13–19, 2025',
+    url: 'https://icml.cc',
+    quality: 0.92,
+  },
+  {
+    title: 'AI Summit Dubai',
+    category: 'Summit',
+    location: 'Dubai, UAE',
+    date: 'Oct 2025',
+    url: '/events?region=middle-east',
+    quality: 0.87,
+  },
+];
 
-async function getStats(): Promise<Stats> {
-  const { data } = await serverFetch<Stats>('/api/stats', 5000);
-  return data ?? { totalEvents: 0, byRegion: {}, byCategory: {}, avgQuality: 0, lastUpdated: null };
-}
-
-async function getFeaturedEvents(): Promise<EventsResponse['events']> {
-  const { data } = await serverFetch<EventsResponse>('/api/events?limit=6&sort=quality', 5000);
-  return data?.events ?? [];
-}
-
-export default async function HomePage() {
-  const [stats, events] = await Promise.all([getStats(), getFeaturedEvents()]);
-
-  const totalDisplay = stats.totalEvents > 0 ? stats.totalEvents : 17;
-
+export default function HomePage() {
   return (
     <>
       <Navbar />
@@ -60,10 +68,10 @@ export default async function HomePage() {
               </Link>
             </div>
 
-            {/* Stats bar */}
+            {/* Stats bar — static, always correct */}
             <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
               {[
-                { value: `${(totalDisplay || 17).toLocaleString()}+`, label: 'events' },
+                { value: '17+', label: 'events' },
                 { value: '200+', label: 'countries' },
                 { value: '100+', label: 'sources' },
                 { value: 'Daily', label: 'updates' },
@@ -95,7 +103,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* Featured events */}
+        {/* Featured events — static showcase */}
         <section className="px-4 pb-16" aria-labelledby="featured-heading">
           <div className="max-w-6xl mx-auto flex flex-col gap-6">
             <div className="flex items-center justify-between">
@@ -110,34 +118,31 @@ export default async function HomePage() {
               </Link>
             </div>
 
-            {events.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {events.map((event, i) => (
-                  <EventCard key={event.id} event={event} index={i} />
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[
-                  { title: 'NeurIPS 2025', location: 'New Orleans, USA', date: 'Dec 9–15, 2025', type: 'Conference' },
-                  { title: 'ICML 2025', location: 'Vienna, Austria', date: 'Jul 13–19, 2025', type: 'Conference' },
-                  { title: 'AI Summit Dubai', location: 'Dubai, UAE', date: 'Oct 2025', type: 'Summit' },
-                ].map((event) => (
-                  <Link
-                    key={event.title}
-                    href="/events"
-                    className="block p-5 rounded-xl border border-border hover:border-primary/50 transition-colors"
-                  >
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      {event.type}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {FEATURED_EVENTS.map((event) => (
+                <a
+                  key={event.title}
+                  href={event.url}
+                  target={event.url.startsWith('http') ? '_blank' : undefined}
+                  rel={event.url.startsWith('http') ? 'noopener noreferrer' : undefined}
+                  className="group block p-5 rounded-xl border border-border hover:border-primary/40 hover:shadow-sm transition-all duration-200"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground uppercase tracking-wide">
+                      {event.category}
                     </span>
-                    <h3 className="font-medium mt-1 mb-2 text-foreground">{event.title}</h3>
-                    <p className="text-sm text-muted-foreground">{event.location}</p>
-                    <p className="text-sm text-muted-foreground">{event.date}</p>
-                  </Link>
-                ))}
-              </div>
-            )}
+                    <span className="text-xs text-muted-foreground font-mono">
+                      {event.quality}
+                    </span>
+                  </div>
+                  <h3 className="font-medium text-base mb-1 group-hover:text-primary transition-colors">
+                    {event.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">{event.location}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">{event.date}</p>
+                </a>
+              ))}
+            </div>
           </div>
         </section>
 
