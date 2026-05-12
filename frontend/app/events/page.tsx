@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import Navbar from '@/components/Navbar';
 import EventCard from '@/components/EventCard';
 import SkeletonCard from '@/components/SkeletonCard';
 import FilterSidebar, { Filters } from '@/components/FilterSidebar';
 import { fetchEvents, fetchRegions, Event, EventsResponse } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { Grid3X3, List, SortAsc, SearchX } from 'lucide-react';
+import { Grid3X3, List, SearchX } from 'lucide-react';
 
 const DEFAULT_FILTERS: Filters = {
   search: '',
@@ -29,12 +29,15 @@ export default function EventsPage() {
   const [view, setView] = useState<ViewMode>('grid');
   const [page, setPage] = useState(1);
   const [data, setData] = useState<EventsResponse | null>(null);
+  const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [waking, setWaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [regionCounts, setRegionCounts] = useState<Record<string, number>>({});
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wakingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     fetchRegions()
@@ -93,6 +96,9 @@ export default function EventsPage() {
 
   return (
     <>
+      {error === 'WAKING_UP' && (
+        <meta httpEquiv="refresh" content="25" />
+      )}
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 py-6 flex gap-6">
         <FilterSidebar
@@ -105,7 +111,9 @@ export default function EventsPage() {
           {/* Toolbar */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground" aria-live="polite" aria-atomic>
-              {loading
+              {!mounted
+                ? ''
+                : loading
                 ? 'Updating results...'
                 : error
                 ? ''
@@ -183,7 +191,7 @@ export default function EventsPage() {
           )}
 
           {/* Loading skeletons */}
-          {loading && (
+          {mounted && loading && (
             <div className="flex flex-col gap-4">
               {waking && (
                 <div className="flex items-center gap-2 text-sm text-amber-500 bg-amber-950/30 border border-amber-900/40 px-4 py-2.5 rounded-lg" role="status">

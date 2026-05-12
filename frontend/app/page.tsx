@@ -1,26 +1,30 @@
 import Link from 'next/link';
 import { Search, Zap, Globe, Database, RefreshCw } from 'lucide-react';
 import Navbar from '@/components/Navbar';
-import { fetchEvents, fetchStats } from '@/lib/api';
 import EventCard from '@/components/EventCard';
 import { REGION_FLAGS, REGION_LABELS } from '@/lib/utils';
 import { ApiStatus } from '@/components/ApiStatus';
+import { serverFetch } from '@/lib/fetchWithTimeout';
+import type { EventsResponse, Stats } from '@/lib/api';
 
 const REGIONS = Object.keys(REGION_FLAGS);
 
-export const revalidate = 300;
+export const revalidate = 0;
+
+async function getStats(): Promise<Stats> {
+  const { data } = await serverFetch<Stats>('/api/stats', 5000);
+  return data ?? { totalEvents: 0, byRegion: {}, byCategory: {}, avgQuality: 0, lastUpdated: null };
+}
+
+async function getFeaturedEvents(): Promise<EventsResponse['events']> {
+  const { data } = await serverFetch<EventsResponse>('/api/events?limit=6&sort=quality', 5000);
+  return data?.events ?? [];
+}
 
 export default async function HomePage() {
-  const [eventsData, stats] = await Promise.allSettled([
-    fetchEvents({ limit: 6, sort: 'quality' }),
-    fetchStats(),
-  ]);
+  const [stats, events] = await Promise.all([getStats(), getFeaturedEvents()]);
 
-  const events = eventsData.status === 'fulfilled' ? eventsData.value.events : [];
-  const statsData =
-    stats.status === 'fulfilled'
-      ? stats.value
-      : { totalEvents: 17, byRegion: {}, byCategory: {}, avgQuality: 0, lastUpdated: null };
+  const totalDisplay = Math.max(stats.totalEvents, 17);
 
   return (
     <>
@@ -59,7 +63,7 @@ export default async function HomePage() {
             {/* Stats bar */}
             <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
               {[
-                { value: `${Math.max(statsData.totalEvents, 17).toLocaleString()}+`, label: 'events' },
+                { value: `${totalDisplay.toLocaleString()}+`, label: 'events' },
                 { value: '200+', label: 'countries' },
                 { value: '100+', label: 'sources' },
                 { value: 'Daily', label: 'updates' },
