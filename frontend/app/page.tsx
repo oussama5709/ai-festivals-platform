@@ -24,7 +24,7 @@ async function getFeaturedEvents(): Promise<EventsResponse['events']> {
 export default async function HomePage() {
   const [stats, events] = await Promise.all([getStats(), getFeaturedEvents()]);
 
-  const totalDisplay = Math.max(stats.totalEvents, 17);
+  const totalDisplay = stats.totalEvents > 0 ? stats.totalEvents : 17;
 
   return (
     <>
@@ -63,7 +63,7 @@ export default async function HomePage() {
             {/* Stats bar */}
             <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
               {[
-                { value: `${totalDisplay.toLocaleString()}+`, label: 'events' },
+                { value: `${(totalDisplay || 17).toLocaleString()}+`, label: 'events' },
                 { value: '200+', label: 'countries' },
                 { value: '100+', label: 'sources' },
                 { value: 'Daily', label: 'updates' },
