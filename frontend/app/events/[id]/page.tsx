@@ -1,11 +1,12 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import {
-  MapPin, Globe, Calendar, ExternalLink, Share2, CalendarPlus,
+  MapPin, Globe, Calendar, ExternalLink, CalendarPlus,
   ArrowLeft, Info,
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import EventCard from '@/components/EventCard';
+import { ShareButton } from '@/components/ShareButton';
 import { fetchEvent, fetchEvents, generateIcsContent } from '@/lib/api';
 import {
   formatDate, qualityColor, qualityLabel, REGION_FLAGS,
@@ -143,14 +144,10 @@ export default async function EventDetailPage({ params }: PageProps) {
               <CalendarPlus className="w-4 h-4" aria-hidden />
               Add to Calendar
             </a>
-            <button
-              onClick={undefined}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary border border-border text-sm text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Share event"
-            >
-              <Share2 className="w-4 h-4" aria-hidden />
-              Share
-            </button>
+            <ShareButton
+              title={event.title}
+              url={`https://ai-festivals-platform.vercel.app/events/${event.id}`}
+            />
           </div>
         </article>
 
