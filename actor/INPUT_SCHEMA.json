@@ -38,7 +38,7 @@
       "title": "📆 التاريخ الأدنى | Minimum Date",
       "description": "لا تجمع أحداث قبل هذا التاريخ | Don't collect events before this date (YYYY-MM-DD)",
       "type": "string",
-      "format": "date",
+      "editor": "textfield",
       "default": "2025-03-03"
     },
     "maxResults": {
