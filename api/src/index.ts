@@ -1,6 +1,7 @@
 import express from 'express';
 import helmet from 'helmet';
 import compression from 'compression';
+import { PrismaClient } from '@prisma/client';
 import { corsMiddleware } from './middleware/cors';
 import { rateLimiter } from './middleware/rateLimit';
 import eventsRouter from './routes/events';
@@ -13,6 +14,8 @@ import { autoSeed } from './startup/autoSeed';
 import { startKeepAlive } from './jobs/keepAlive';
 import { startScheduler } from './jobs/scheduler';
 import { getPipelineHealth } from './jobs/monitor';
+
+const prisma = new PrismaClient();
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -52,7 +55,7 @@ app.use((_req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
 
-app.listen(PORT, async () => {
+const server = app.listen(PORT, async () => {
   console.log(JSON.stringify({ ts: new Date().toISOString(), event: 'server.start', port: PORT }));
   await autoSeed();
   if (process.env.NODE_ENV === 'production') {
@@ -60,5 +63,20 @@ app.listen(PORT, async () => {
     startScheduler();
   }
 });
+
+// ── Graceful shutdown ─────────────────────────────────────────────────────────
+async function shutdown(signal: string) {
+  console.log(JSON.stringify({ ts: new Date().toISOString(), event: 'server.shutdown', signal }));
+  server.close(async () => {
+    await prisma.$disconnect();
+    console.log(JSON.stringify({ ts: new Date().toISOString(), event: 'server.stopped' }));
+    process.exit(0);
+  });
+  // Force exit if drain takes >10s
+  setTimeout(() => process.exit(1), 10_000).unref();
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT',  () => shutdown('SIGINT'));
 
 export default app;
