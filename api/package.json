@@ -11,7 +11,9 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "db:push": "node scripts/switch-schema.js && prisma db push",
+    "seed:tunisia": "ts-node prisma/tunisia-seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.7.0",

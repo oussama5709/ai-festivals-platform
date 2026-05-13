@@ -31,6 +31,9 @@ router.get('/', async (req: Request, res: Response) => {
       limit: req.query['limit'] ? Number(req.query['limit']) : 20,
       sort: req.query['sort'] as 'date' | 'quality' | 'relevance',
       isOnline: req.query['isOnline'] === 'true' ? true : req.query['isOnline'] === 'false' ? false : undefined,
+      openCompetitions: req.query['openCompetitions'] === 'true',
+      hasCfp: req.query['hasCfp'] === 'true',
+      isTunisia: req.query['isTunisia'] === 'true',
     });
 
     setCached(cacheKey, result);

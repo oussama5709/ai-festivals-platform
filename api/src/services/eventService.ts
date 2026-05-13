@@ -14,6 +14,9 @@ export interface EventQuery {
   sort?: 'date' | 'quality' | 'relevance';
   isOnline?: boolean;
   isFree?: boolean;
+  openCompetitions?: boolean;
+  hasCfp?: boolean;
+  isTunisia?: boolean;
 }
 
 export async function queryEvents(q: EventQuery) {
@@ -46,6 +49,17 @@ export async function queryEvents(q: EventQuery) {
   }
   if (q.isOnline !== undefined) {
     where.isOnline = q.isOnline;
+  }
+  if (q.openCompetitions) {
+    where.isCompetition = true;
+    where.competitionStatus = 'open';
+  }
+  if (q.hasCfp) {
+    where.hasCfp = true;
+    where.cfpDeadline = { gt: new Date() };
+  }
+  if (q.isTunisia) {
+    where.isTunisia = true;
   }
 
   let orderBy: Prisma.EventOrderByWithRelationInput = { date: 'asc' };

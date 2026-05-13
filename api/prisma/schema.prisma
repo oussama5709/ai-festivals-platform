@@ -25,10 +25,32 @@ model Event {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  // Competition fields
+  isCompetition      Boolean   @default(false)
+  prize              String?
+  prizeAmount        Float?
+  prizeCurrency      String?
+  eligibility        String?
+  howToApply         String?
+  submissionDeadline DateTime?
+  competitionStatus  String?   // "open" | "closed" | "upcoming"
+
+  // CFP fields
+  hasCfp             Boolean   @default(false)
+  cfpDeadline        DateTime?
+  cfpUrl             String?
+  cfpDescription     String?
+
+  // Tunisia specific
+  isTunisia          Boolean   @default(false)
+
   @@index([region])
   @@index([category])
   @@index([date])
   @@index([qualityScore])
+  @@index([isCompetition])
+  @@index([hasCfp])
+  @@index([isTunisia])
 }
 
 model ScrapeRun {

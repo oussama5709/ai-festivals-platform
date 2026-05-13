@@ -1,0 +1,70 @@
+{
+  "nav": {
+    "home": "Accueil",
+    "events": "Événements",
+    "dashboard": "Tableau de bord",
+    "api": "API",
+    "tunisia": "🇹🇳 Tunisie IA"
+  },
+  "home": {
+    "badge": "Mis à jour quotidiennement depuis 100+ sources",
+    "headline": "Chaque événement IA,",
+    "headline_accent": "partout",
+    "subtitle": "Conférences, ateliers, hackathons et compétitions — collectés automatiquement depuis NeurIPS, Eventbrite, Meetup et 100 autres sources.",
+    "cta": "Rechercher des événements IA",
+    "stats_events": "événements indexés",
+    "stats_countries": "pays",
+    "stats_sources": "sources",
+    "stats_updates": "Mises à jour quotidiennes",
+    "featured_title": "Événements phares",
+    "view_all": "Voir tout →",
+    "run_apify": "Lancer sur Apify ↗"
+  },
+  "events": {
+    "title": "Événements IA",
+    "search_placeholder": "Rechercher des événements IA dans le monde...",
+    "filters": "Filtres",
+    "clear_all": "Tout effacer",
+    "region": "Région",
+    "event_type": "Type d'événement",
+    "date_range": "Plage de dates",
+    "min_quality": "Score de qualité minimum",
+    "online_only": "Événements en ligne uniquement",
+    "free_only": "Événements gratuits uniquement",
+    "open_competitions": "🏆 Compétitions ouvertes uniquement",
+    "open_cfp": "📝 Appel à communications ouvert",
+    "found": "événements trouvés",
+    "sort_date": "Date",
+    "sort_quality": "Qualité",
+    "sort_relevance": "Pertinence",
+    "view_details": "Voir les détails",
+    "no_results": "Aucun événement ne correspond à vos filtres.",
+    "error": "Impossible de charger les événements",
+    "try_again": "Réessayer"
+  },
+  "competitions": {
+    "label": "Compétition",
+    "prize": "Prix",
+    "deadline": "Date limite de soumission",
+    "eligibility": "Éligibilité",
+    "how_to_apply": "Comment participer",
+    "open": "Ouvert",
+    "closed": "Fermé",
+    "online": "En ligne",
+    "in_person": "Présentiel",
+    "apply_now": "Postuler →"
+  },
+  "cfp": {
+    "label": "Appel à communications",
+    "deadline": "Date limite CFP",
+    "submit": "Soumettre un article",
+    "open": "Ouvert aux soumissions"
+  },
+  "tunisia": {
+    "section_title": "IA en Tunisie 🇹🇳",
+    "subtitle": "Conférences, compétitions et hackathons en Tunisie",
+    "events": "Événements",
+    "competitions": "Compétitions",
+    "open_cfps": "CFP ouverts"
+  }
+}

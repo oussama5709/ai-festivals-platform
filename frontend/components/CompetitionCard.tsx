@@ -1,0 +1,192 @@
+interface CompetitionEvent {
+  id: string;
+  title: string;
+  category: string;
+  date: string | null;
+  location: string | null;
+  isOnline: boolean;
+  isCompetition?: boolean;
+  prize?: string | null;
+  eligibility?: string | null;
+  howToApply?: string | null;
+  submissionDeadline?: string | null;
+  competitionStatus?: string | null;
+  hasCfp?: boolean;
+  cfpDeadline?: string | null;
+  cfpUrl?: string | null;
+  isTunisia?: boolean;
+  qualityScore: number;
+  url?: string | null;
+}
+
+interface CompetitionCardProps {
+  event: CompetitionEvent;
+}
+
+export function CompetitionCard({ event }: CompetitionCardProps) {
+  const isOpen = event.competitionStatus === 'open';
+  const isUpcoming = event.competitionStatus === 'upcoming';
+
+  const daysLeft =
+    event.submissionDeadline
+      ? Math.ceil((new Date(event.submissionDeadline).getTime() - Date.now()) / 86_400_000)
+      : null;
+
+  const statusColor = isOpen
+    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+    : isUpcoming
+    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+    : 'bg-muted text-muted-foreground';
+
+  const statusLabel = isOpen ? '🟢 Open' : isUpcoming ? '🔵 Upcoming' : '🔴 Closed';
+
+  return (
+    <div className="group flex flex-col p-5 rounded-2xl border border-border bg-card hover:border-primary/30 hover:shadow-md transition-all duration-200">
+      {/* Top badges */}
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {event.isTunisia && (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 font-medium">
+              🇹🇳 Tunisia
+            </span>
+          )}
+          {(event.competitionStatus || event.isCompetition) && (
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColor}`}>
+              {statusLabel}
+            </span>
+          )}
+          <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
+            {event.isOnline ? '🌐 Online' : '📍 In-person'}
+          </span>
+        </div>
+        <span className="text-xs font-mono text-muted-foreground">{event.qualityScore.toFixed(2)}</span>
+      </div>
+
+      {/* Title */}
+      <h3 className="font-semibold text-base mb-3 group-hover:text-primary transition-colors line-clamp-2">
+        {event.url ? (
+          <a href={event.url} target="_blank" rel="noopener noreferrer">{event.title}</a>
+        ) : (
+          event.title
+        )}
+      </h3>
+
+      {/* Prize */}
+      {event.prize && (
+        <div className="flex items-start gap-2 mb-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+          <span className="text-lg leading-none">🏆</span>
+          <div>
+            <p className="text-xs font-medium text-amber-800 dark:text-amber-300">Prize</p>
+            <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">{event.prize}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Submission deadline */}
+      {daysLeft !== null && daysLeft > 0 && (
+        <div
+          className={`flex items-center gap-2 mb-2 text-sm ${
+            daysLeft < 7
+              ? 'text-red-600 dark:text-red-400'
+              : daysLeft < 30
+              ? 'text-amber-600 dark:text-amber-400'
+              : 'text-muted-foreground'
+          }`}
+        >
+          <span>⏰</span>
+          <span>
+            {daysLeft < 7
+              ? `⚠️ Only ${daysLeft} day${daysLeft !== 1 ? 's' : ''} left!`
+              : `Deadline: ${new Date(event.submissionDeadline!).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}`}
+          </span>
+        </div>
+      )}
+      {daysLeft !== null && daysLeft <= 0 && (
+        <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground line-through">
+          <span>⏰</span>
+          <span>
+            Deadline passed:{' '}
+            {new Date(event.submissionDeadline!).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+            })}
+          </span>
+        </div>
+      )}
+
+      {/* Eligibility */}
+      {event.eligibility && (
+        <div className="flex items-start gap-2 mb-2 text-sm text-muted-foreground">
+          <span>👥</span>
+          <span className="line-clamp-1">{event.eligibility}</span>
+        </div>
+      )}
+
+      {/* CFP badge */}
+      {event.hasCfp && (
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <span className="text-xs px-2 py-1 rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-medium">
+            📝 Call for Papers open
+          </span>
+          {event.cfpDeadline && (
+            <span className="text-xs text-muted-foreground">
+              until{' '}
+              {new Date(event.cfpDeadline).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Location & Date */}
+      <div className="mt-auto pt-3 border-t border-border/60 flex flex-col gap-1.5">
+        {event.date && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>📅</span>
+            <span>
+              {new Date(event.date).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </span>
+          </div>
+        )}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>📍</span>
+          <span className="truncate">{event.isOnline ? 'Online' : (event.location ?? 'TBA')}</span>
+        </div>
+      </div>
+
+      {/* Apply button */}
+      {event.howToApply && isOpen && (
+        <a
+          href={event.howToApply}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 w-full text-center py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+        >
+          Apply now →
+        </a>
+      )}
+      {event.cfpUrl && event.hasCfp && (
+        <a
+          href={event.cfpUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 w-full text-center py-2 rounded-xl border border-primary text-primary text-sm font-medium hover:bg-primary/10 transition-colors"
+        >
+          Submit paper →
+        </a>
+      )}
+    </div>
+  );
+}
+

@@ -16,6 +16,22 @@ export interface Event {
   qualityScore: number;
   scrapedAt: string;
   createdAt: string;
+  // Competition fields
+  isCompetition: boolean;
+  prize: string | null;
+  prizeAmount: number | null;
+  prizeCurrency: string | null;
+  eligibility: string | null;
+  howToApply: string | null;
+  submissionDeadline: string | null;
+  competitionStatus: string | null;
+  // CFP fields
+  hasCfp: boolean;
+  cfpDeadline: string | null;
+  cfpUrl: string | null;
+  cfpDescription: string | null;
+  // Tunisia
+  isTunisia: boolean;
 }
 
 export interface EventsResponse {
@@ -56,6 +72,9 @@ export interface EventsQuery {
   limit?: number;
   sort?: string;
   isOnline?: boolean;
+  openCompetitions?: boolean;
+  hasCfp?: boolean;
+  isTunisia?: boolean;
 }
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {

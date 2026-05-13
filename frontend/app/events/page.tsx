@@ -19,6 +19,8 @@ const DEFAULT_FILTERS: Filters = {
   minQuality: 0.5,
   isOnline: false,
   isFree: false,
+  openCompetitions: false,
+  hasCfp: false,
 };
 
 type SortOption = 'date' | 'quality' | 'relevance';
@@ -28,29 +30,33 @@ type ViewMode = 'grid' | 'list';
 
 function filtersFromParams(params: URLSearchParams): Filters {
   return {
-    search:     params.get('search') ?? '',
-    regions:    params.getAll('region'),
-    categories: params.getAll('category'),
-    minDate:    params.get('minDate') ?? '',
-    maxDate:    params.get('maxDate') ?? '',
-    minQuality: params.get('minQuality') ? Number(params.get('minQuality')) : 0.5,
-    isOnline:   params.get('isOnline') === 'true',
-    isFree:     params.get('isFree') === 'true',
+    search:           params.get('search') ?? '',
+    regions:          params.getAll('region'),
+    categories:       params.getAll('category'),
+    minDate:          params.get('minDate') ?? '',
+    maxDate:          params.get('maxDate') ?? '',
+    minQuality:       params.get('minQuality') ? Number(params.get('minQuality')) : 0.5,
+    isOnline:         params.get('isOnline') === 'true',
+    isFree:           params.get('isFree') === 'true',
+    openCompetitions: params.get('openCompetitions') === 'true',
+    hasCfp:           params.get('hasCfp') === 'true',
   };
 }
 
 function filtersToParams(f: Filters, sort: SortOption, page: number): string {
   const p = new URLSearchParams();
-  if (f.search)     p.set('search', f.search);
+  if (f.search)            p.set('search', f.search);
   f.regions.forEach(r => p.append('region', r));
   f.categories.forEach(c => p.append('category', c));
-  if (f.minDate)    p.set('minDate', f.minDate);
-  if (f.maxDate)    p.set('maxDate', f.maxDate);
+  if (f.minDate)           p.set('minDate', f.minDate);
+  if (f.maxDate)           p.set('maxDate', f.maxDate);
   if (f.minQuality !== 0.5) p.set('minQuality', String(f.minQuality));
-  if (f.isOnline)   p.set('isOnline', 'true');
-  if (f.isFree)     p.set('isFree', 'true');
-  if (sort !== 'date') p.set('sort', sort);
-  if (page > 1)     p.set('page', String(page));
+  if (f.isOnline)          p.set('isOnline', 'true');
+  if (f.isFree)            p.set('isFree', 'true');
+  if (f.openCompetitions)  p.set('openCompetitions', 'true');
+  if (f.hasCfp)            p.set('hasCfp', 'true');
+  if (sort !== 'date')     p.set('sort', sort);
+  if (page > 1)            p.set('page', String(page));
   return p.toString();
 }
 
@@ -103,16 +109,18 @@ function EventsPageInner() {
     wakingRef.current = setTimeout(() => setWaking(true), 4000);
     try {
       const result = await fetchEvents({
-        search:     f.search || undefined,
-        region:     f.regions.length === 1 ? f.regions[0] : undefined,
-        type:       f.categories.length === 1 ? f.categories[0] : undefined,
-        minDate:    f.minDate || undefined,
-        maxDate:    f.maxDate || undefined,
-        minQuality: f.minQuality,
-        isOnline:   f.isOnline ? true : undefined,
-        sort:       s,
-        page:       p,
-        limit:      21,
+        search:           f.search || undefined,
+        region:           f.regions.length === 1 ? f.regions[0] : undefined,
+        type:             f.categories.length === 1 ? f.categories[0] : undefined,
+        minDate:          f.minDate || undefined,
+        maxDate:          f.maxDate || undefined,
+        minQuality:       f.minQuality,
+        isOnline:         f.isOnline ? true : undefined,
+        openCompetitions: f.openCompetitions ? true : undefined,
+        hasCfp:           f.hasCfp ? true : undefined,
+        sort:             s,
+        page:             p,
+        limit:            21,
       });
       setData(result);
     } catch (err: unknown) {

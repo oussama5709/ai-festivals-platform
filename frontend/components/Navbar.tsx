@@ -4,10 +4,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Brain } from 'lucide-react';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 const NAV_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/events', label: 'Events' },
+  { href: '/tunisia', label: '🇹🇳 Tunisia' },
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/api-docs', label: 'API' },
 ];
@@ -48,6 +50,9 @@ export default function Navbar() {
           >
             Browse events
           </Link>
+          <div className="ml-2 pl-2 border-l border-border">
+            <LanguageSwitcher />
+          </div>
         </div>
       </div>
     </nav>

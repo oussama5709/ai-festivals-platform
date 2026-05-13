@@ -13,6 +13,8 @@ export interface Filters {
   minQuality: number;
   isOnline: boolean;
   isFree: boolean;
+  openCompetitions: boolean;
+  hasCfp: boolean;
 }
 
 const DEFAULT_FILTERS: Filters = {
@@ -24,6 +26,8 @@ const DEFAULT_FILTERS: Filters = {
   minQuality: 0.5,
   isOnline: false,
   isFree: false,
+  openCompetitions: false,
+  hasCfp: false,
 };
 
 interface FilterSidebarProps {
@@ -57,7 +61,9 @@ export default function FilterSidebar({
     filters.maxDate ||
     filters.minQuality > 0.5 ||
     filters.isOnline ||
-    filters.isFree;
+    filters.isFree ||
+    filters.openCompetitions ||
+    filters.hasCfp;
 
   const content = (
     <div className="flex flex-col gap-6 text-sm">
@@ -207,6 +213,26 @@ export default function FilterSidebar({
             aria-label="Free events only"
           />
           <span className="text-muted-foreground">Free events only</span>
+        </label>
+        <label className="flex items-center gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={filters.openCompetitions}
+            onChange={(e) => onChange({ ...filters, openCompetitions: e.target.checked })}
+            className="rounded border-border accent-primary"
+            aria-label="Open competitions only"
+          />
+          <span className="text-muted-foreground">🏆 Open competitions only</span>
+        </label>
+        <label className="flex items-center gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={filters.hasCfp}
+            onChange={(e) => onChange({ ...filters, hasCfp: e.target.checked })}
+            className="rounded border-border accent-primary"
+            aria-label="Open Call for Papers"
+          />
+          <span className="text-muted-foreground">📝 Open Call for Papers (CFP)</span>
         </label>
       </div>
     </div>

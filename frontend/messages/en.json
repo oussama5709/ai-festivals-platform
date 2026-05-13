@@ -1,0 +1,70 @@
+{
+  "nav": {
+    "home": "Home",
+    "events": "Events",
+    "dashboard": "Dashboard",
+    "api": "API",
+    "tunisia": "🇹🇳 Tunisia AI"
+  },
+  "home": {
+    "badge": "Updated daily from 100+ sources",
+    "headline": "Every AI event,",
+    "headline_accent": "everywhere",
+    "subtitle": "Conferences, workshops, hackathons, and competitions — automatically collected from NeurIPS, Eventbrite, Meetup, and 100 more sources.",
+    "cta": "Search AI events",
+    "stats_events": "events indexed",
+    "stats_countries": "countries",
+    "stats_sources": "sources",
+    "stats_updates": "Daily updates",
+    "featured_title": "Top events right now",
+    "view_all": "View all →",
+    "run_apify": "Run on Apify ↗"
+  },
+  "events": {
+    "title": "AI Events",
+    "search_placeholder": "Search AI events worldwide...",
+    "filters": "Filters",
+    "clear_all": "Clear all",
+    "region": "Region",
+    "event_type": "Event Type",
+    "date_range": "Date Range",
+    "min_quality": "Min Quality Score",
+    "online_only": "Online events only",
+    "free_only": "Free events only",
+    "open_competitions": "🏆 Open competitions only",
+    "open_cfp": "📝 Open Call for Papers (CFP)",
+    "found": "events found",
+    "sort_date": "Date",
+    "sort_quality": "Quality",
+    "sort_relevance": "Relevance",
+    "view_details": "View details",
+    "no_results": "No events match your filters. Try broadening your search.",
+    "error": "Could not load events",
+    "try_again": "Try again"
+  },
+  "competitions": {
+    "label": "Competition",
+    "prize": "Prize",
+    "deadline": "Submission deadline",
+    "eligibility": "Eligibility",
+    "how_to_apply": "How to apply",
+    "open": "Open",
+    "closed": "Closed",
+    "online": "Online",
+    "in_person": "In person",
+    "apply_now": "Apply now →"
+  },
+  "cfp": {
+    "label": "Call for Papers",
+    "deadline": "CFP Deadline",
+    "submit": "Submit paper",
+    "open": "Open for submissions"
+  },
+  "tunisia": {
+    "section_title": "AI in Tunisia 🇹🇳",
+    "subtitle": "Conferences, competitions, and hackathons in Tunisia",
+    "events": "Events",
+    "competitions": "Competitions",
+    "open_cfps": "Open CFPs"
+  }
+}
