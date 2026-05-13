@@ -1,4 +1,3 @@
-import { Prisma } from '@prisma/client';
 import {
   triggerActorRun,
   getRunStatus,
@@ -14,6 +13,7 @@ import {
 import { invalidateCache } from '../services/cacheService';
 import { sendTelegramAlert } from '../services/notificationService';
 import { withRetry, sleep, dbCircuit } from './retry';
+import { mapToEvent } from '../routes/webhook';
 
 const POLL_INTERVAL_MS = 30_000;
 const MAX_POLL_DURATION_MS = 15 * 60_000; // 15 min
@@ -32,21 +32,10 @@ async function processDataset(datasetId: string): Promise<number> {
     { maxAttempts: 3, baseDelayMs: 5_000, label: 'fetchDataset' }
   );
 
-  const mapped: Prisma.EventCreateInput[] = (items as Record<string, unknown>[]).map((item) => ({
-    title: String(item['title'] ?? ''),
-    description: item['description'] ? String(item['description']) : null,
-    date: item['date'] ? new Date(String(item['date'])) : null,
-    endDate: item['endDate'] ? new Date(String(item['endDate'])) : null,
-    location: item['location'] ? String(item['location']) : null,
-    isOnline: Boolean(item['isOnline'] ?? false),
-    url: item['url'] ? String(item['url']) : null,
-    source: String(item['source'] ?? 'unknown'),
-    region: String(item['region'] ?? 'worldwide'),
-    regionArabic: item['regionArabic'] ? String(item['regionArabic']) : null,
-    category: String(item['category'] ?? 'conference'),
-    qualityScore: Number(item['qualityScore'] ?? 0.5),
-    scrapedAt: new Date(),
-  }));
+  // Reuse the same dual-schema mapper used by the webhook route
+  const mapped = (items as Record<string, unknown>[])
+    .map(mapToEvent)
+    .filter((e): e is NonNullable<ReturnType<typeof mapToEvent>> => e !== null);
 
   if (dbCircuit.isOpen()) {
     log('pipeline.db.circuit_open — skipping upsert');
