@@ -10,7 +10,7 @@ from typing import List
 
 from .core.base_source import BaseSource, registry
 from .core.logger import setup_logging
-from .sources.eventbrite import EventbriteSource
+from .sources.ai_festivals_platform_source import all_regions_sources
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -24,10 +24,7 @@ class CrawlerOrchestrator:
 
     def register_sources(self):
         """Register all data sources"""
-        self.sources = [
-            EventbriteSource(),
-            # TODO: Add more sources
-        ]
+        self.sources = all_regions_sources(min_quality=0.5)
 
         for source in self.sources:
             registry.register(source)
