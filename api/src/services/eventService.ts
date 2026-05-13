@@ -39,9 +39,9 @@ export async function queryEvents(q: EventQuery) {
   }
   if (q.search) {
     where.OR = [
-      { title: { contains: q.search } },
-      { description: { contains: q.search } },
-      { location: { contains: q.search } },
+      { title: { contains: q.search, mode: 'insensitive' } },
+      { description: { contains: q.search, mode: 'insensitive' } },
+      { location: { contains: q.search, mode: 'insensitive' } },
     ];
   }
   if (q.isOnline !== undefined) {
@@ -71,13 +71,22 @@ export async function getEventById(id: string) {
 
 export async function upsertEvents(items: Prisma.EventCreateInput[]) {
   const results = await Promise.allSettled(
-    items.map((item) =>
-      prisma.event.upsert({
-        where: { url: item.url ?? '' },
-        update: item,
-        create: item,
-      })
-    )
+    items.map((item) => {
+      if (item.url) {
+        // URL is unique — use it as the dedup key
+        return prisma.event.upsert({
+          where: { url: item.url },
+          update: { ...item },
+          create: item,
+        });
+      }
+      // No URL: insert-only, skip if identical title+date already exists
+      return prisma.event.upsert({
+        where: { url: `__no_url__${item.title}__${item.date?.toString() ?? ''}` },
+        update: { ...item },
+        create: { ...item, url: `__no_url__${item.title}__${item.date?.toString() ?? ''}` },
+      });
+    })
   );
   return results.filter((r) => r.status === 'fulfilled').length;
 }
