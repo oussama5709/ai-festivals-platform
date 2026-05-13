@@ -144,7 +144,7 @@ export default function HomePage() {
             </p>
           </div>
           <a
-            href="https://console.apify.com"
+            href="https://console.apify.com/actors/loNQJNHxL29nxjzmH"
             target="_blank"
             rel="noopener noreferrer"
             className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border hover:bg-muted/50 text-sm font-medium transition-colors"
