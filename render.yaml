@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: ai-festivals-api
+    name: ai-festivals-platform
     runtime: node
     rootDir: api
     buildCommand: npm ci && npm run build
