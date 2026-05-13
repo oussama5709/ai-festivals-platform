@@ -1,4 +1,4 @@
-const Apify = require('apify');
+const { Actor } = require('apify'); // SDK v3 — Actor replaces legacy Apify namespace
 const axios = require('axios');
 const cheerio = require('cheerio');
 
@@ -62,9 +62,9 @@ const MAJOR_CONFERENCES = [
     }
 ];
 
-Apify.main(async () => {
-    const input = await Apify.getInput();
-    
+Actor.main(async () => {
+    const input = await Actor.getInput();
+
     const {
         searchRegions = ['worldwide', 'middle-east', 'africa', 'europe', 'asia', 'americas'],
         upcomingOnly = true,
@@ -72,8 +72,8 @@ Apify.main(async () => {
         maxResults = 100
     } = input || {};
 
-    const dataset = await Apify.openDataset();
-    const requestQueue = await Apify.openRequestQueue();
+    const dataset = await Actor.openDataset();
+    const requestQueue = await Actor.openRequestQueue();
     
     console.log('🚀 بدء جمع أحداث الذكاء الاصطناعي...');
     console.log(`📍 المناطق المستهدفة: ${searchRegions.join(', ')}`);
@@ -143,7 +143,7 @@ Apify.main(async () => {
     });
 
     console.log(`\n✅ تم جمع ${processedEvents.length} حدث بنجاح!`);
-    console.log(`📈 البيانات محفوظة في Dataset: ${dataset.id}`);
+    console.log(`📈 البيانات محفوظة في Dataset: ${(await dataset.getInfo())?.id ?? 'default'}`);
 });
 
 // =====================
