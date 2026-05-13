@@ -1,4 +1,6 @@
 import express from 'express';
+import helmet from 'helmet';
+import compression from 'compression';
 import { corsMiddleware } from './middleware/cors';
 import { rateLimiter } from './middleware/rateLimit';
 import eventsRouter from './routes/events';
@@ -15,6 +17,8 @@ import { getPipelineHealth } from './jobs/monitor';
 const app = express();
 const PORT = process.env.PORT ?? 3001;
 
+app.use(helmet({ contentSecurityPolicy: false })); // CSP off — API-only server
+app.use(compression());
 app.use(express.json());
 app.use(corsMiddleware);
 app.use(rateLimiter);
