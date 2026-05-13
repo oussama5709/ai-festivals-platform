@@ -4,10 +4,11 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import en from '../messages/en.json';
 import fr from '../messages/fr.json';
 import ar from '../messages/ar.json';
+import arTn from '../messages/ar-tn.json';
 
-export type Locale = 'en' | 'fr' | 'ar';
+export type Locale = 'en' | 'fr' | 'ar' | 'ar-tn';
 
-const MESSAGES = { en, fr, ar } as const;
+const MESSAGES = { en, fr, ar, 'ar-tn': arTn } as const;
 
 type Messages = typeof en;
 
@@ -28,14 +29,14 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const stored = localStorage.getItem('lang') as Locale | null;
-    if (stored && ['en', 'fr', 'ar'].includes(stored)) {
+    if (stored && ['en', 'fr', 'ar', 'ar-tn'].includes(stored)) {
       applyLocale(stored);
       setLocaleState(stored);
     }
   }, []);
 
   function applyLocale(l: Locale) {
-    document.documentElement.dir = l === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.dir = (l === 'ar' || l === 'ar-tn') ? 'rtl' : 'ltr';
     document.documentElement.lang = l;
   }
 

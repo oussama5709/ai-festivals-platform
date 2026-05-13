@@ -29,8 +29,15 @@ export default function EventCard({ event, index = 0 }: EventCardProps) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04, duration: 0.3 }}
-      className="glass-card rounded-xl p-5 flex flex-col gap-3 transition-all duration-200 hover:scale-[1.01]"
+      className="relative glass-card rounded-xl p-5 flex flex-col gap-3 transition-all duration-200 hover:scale-[1.01]"
     >
+      {/* Animated green dot for open competitions or open CFPs */}
+      {(event.competitionStatus === 'open' || (event.hasCfp && event.cfpDeadline && new Date(event.cfpDeadline) > new Date())) && (
+        <span className="absolute -top-1 -right-1 flex h-3 w-3" aria-label="Open now">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500 ring-2 ring-background" />
+        </span>
+      )}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 flex-wrap">
           <span

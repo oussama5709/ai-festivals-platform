@@ -6,6 +6,7 @@ const LANGUAGES: { code: Locale; label: string; flag: string }[] = [
   { code: 'en', label: 'EN', flag: '🇬🇧' },
   { code: 'fr', label: 'FR', flag: '🇫🇷' },
   { code: 'ar', label: 'AR', flag: '🇹🇳' },
+  { code: 'ar-tn', label: 'تونسي', flag: '🇹🇳' },
 ];
 
 export function LanguageSwitcher() {
