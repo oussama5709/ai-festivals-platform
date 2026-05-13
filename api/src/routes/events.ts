@@ -4,11 +4,18 @@ import { getCached, setCached } from '../services/cacheService';
 
 const router = Router();
 
+// ── Cache-Control helpers ─────────────────────────────────────────────────────
+// Tells CDN/browser to cache list responses for 60s, detail for 5min
+function setCacheHeaders(res: Response, seconds: number) {
+  res.set('Cache-Control', `public, s-maxage=${seconds}, stale-while-revalidate=${seconds * 2}`);
+}
+
 router.get('/', async (req: Request, res: Response) => {
   try {
     const cacheKey = `events:${JSON.stringify(req.query)}`;
     const cached = getCached(cacheKey);
     if (cached) {
+      setCacheHeaders(res, 60);
       res.json(cached);
       return;
     }
@@ -27,6 +34,7 @@ router.get('/', async (req: Request, res: Response) => {
     });
 
     setCached(cacheKey, result);
+    setCacheHeaders(res, 60);
     res.json(result);
   } catch (err) {
     console.error(err);
@@ -38,11 +46,13 @@ router.get('/regions', async (_req: Request, res: Response) => {
   try {
     const cached = getCached('regions');
     if (cached) {
+      setCacheHeaders(res, 300);
       res.json(cached);
       return;
     }
     const regions = await getRegions();
     setCached('regions', regions);
+    setCacheHeaders(res, 300);
     res.json(regions);
   } catch (err) {
     console.error(err);
@@ -57,6 +67,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       res.status(404).json({ error: 'Event not found.' });
       return;
     }
+    setCacheHeaders(res, 300);
     res.json(event);
   } catch (err) {
     console.error(err);
