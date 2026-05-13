@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ApiStatus } from '@/components/ApiStatus';
 
 const STATS = [
-  { value: '17+',   label: 'events indexed' },
+  { value: '97+',   label: 'events indexed' },
   { value: '200+',  label: 'countries' },
   { value: '100+',  label: 'sources' },
   { value: 'Daily', label: 'updates' },
