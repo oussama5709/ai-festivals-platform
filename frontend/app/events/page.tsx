@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import EventCard from '@/components/EventCard';
 import SkeletonCard from '@/components/SkeletonCard';
@@ -23,19 +24,58 @@ const DEFAULT_FILTERS: Filters = {
 type SortOption = 'date' | 'quality' | 'relevance';
 type ViewMode = 'grid' | 'list';
 
-export default function EventsPage() {
-  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
-  const [sort, setSort] = useState<SortOption>('date');
-  const [view, setView] = useState<ViewMode>('grid');
-  const [page, setPage] = useState(1);
-  const [data, setData] = useState<EventsResponse | null>(null);
+// ── URL ↔ state helpers ────────────────────────────────────────────────────────
+
+function filtersFromParams(params: URLSearchParams): Filters {
+  return {
+    search:     params.get('search') ?? '',
+    regions:    params.getAll('region'),
+    categories: params.getAll('category'),
+    minDate:    params.get('minDate') ?? '',
+    maxDate:    params.get('maxDate') ?? '',
+    minQuality: params.get('minQuality') ? Number(params.get('minQuality')) : 0.5,
+    isOnline:   params.get('isOnline') === 'true',
+    isFree:     params.get('isFree') === 'true',
+  };
+}
+
+function filtersToParams(f: Filters, sort: SortOption, page: number): string {
+  const p = new URLSearchParams();
+  if (f.search)     p.set('search', f.search);
+  f.regions.forEach(r => p.append('region', r));
+  f.categories.forEach(c => p.append('category', c));
+  if (f.minDate)    p.set('minDate', f.minDate);
+  if (f.maxDate)    p.set('maxDate', f.maxDate);
+  if (f.minQuality !== 0.5) p.set('minQuality', String(f.minQuality));
+  if (f.isOnline)   p.set('isOnline', 'true');
+  if (f.isFree)     p.set('isFree', 'true');
+  if (sort !== 'date') p.set('sort', sort);
+  if (page > 1)     p.set('page', String(page));
+  return p.toString();
+}
+
+// ── Inner component (uses useSearchParams — must be wrapped in Suspense) ──────
+
+function EventsPageInner() {
+  const router     = useRouter();
+  const pathname   = usePathname();
+  const searchParams = useSearchParams();
+
+  // Initialise state from URL on first mount
+  const [filters, setFilters] = useState<Filters>(() => filtersFromParams(searchParams));
+  const [sort, setSort] = useState<SortOption>(
+    (searchParams.get('sort') as SortOption) ?? 'date'
+  );
+  const [view, setView]       = useState<ViewMode>('grid');
+  const [page, setPage]       = useState(Number(searchParams.get('page') ?? 1));
+  const [data, setData]       = useState<EventsResponse | null>(null);
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [waking, setWaking] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [waking, setWaking]   = useState(false);
+  const [error, setError]     = useState<string | null>(null);
   const [regionCounts, setRegionCounts] = useState<Record<string, number>>({});
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const wakingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wakingRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -49,6 +89,12 @@ export default function EventsPage() {
       .catch(() => {});
   }, []);
 
+  // Push filter/sort/page state into the URL (shallow — no full navigation)
+  const syncUrl = useCallback((f: Filters, s: SortOption, p: number) => {
+    const qs = filtersToParams(f, s, p);
+    router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
+  }, [router, pathname]);
+
   const load = useCallback(async (f: Filters, s: SortOption, p: number) => {
     setLoading(true);
     setError(null);
@@ -57,16 +103,16 @@ export default function EventsPage() {
     wakingRef.current = setTimeout(() => setWaking(true), 4000);
     try {
       const result = await fetchEvents({
-        search: f.search || undefined,
-        region: f.regions.length === 1 ? f.regions[0] : undefined,
-        type: f.categories.length === 1 ? f.categories[0] : undefined,
-        minDate: f.minDate || undefined,
-        maxDate: f.maxDate || undefined,
+        search:     f.search || undefined,
+        region:     f.regions.length === 1 ? f.regions[0] : undefined,
+        type:       f.categories.length === 1 ? f.categories[0] : undefined,
+        minDate:    f.minDate || undefined,
+        maxDate:    f.maxDate || undefined,
         minQuality: f.minQuality,
-        isOnline: f.isOnline ? true : undefined,
-        sort: s,
-        page: p,
-        limit: 21,
+        isOnline:   f.isOnline ? true : undefined,
+        sort:       s,
+        page:       p,
+        limit:      21,
       });
       setData(result);
     } catch (err: unknown) {
@@ -80,6 +126,7 @@ export default function EventsPage() {
   }, []);
 
   useEffect(() => {
+    syncUrl(filters, sort, page);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       load(filters, sort, page);
@@ -87,7 +134,7 @@ export default function EventsPage() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [filters, sort, page, load]);
+  }, [filters, sort, page, load, syncUrl]);
 
   const handleFiltersChange = (next: Filters) => {
     setFilters(next);
@@ -273,5 +320,15 @@ export default function EventsPage() {
         </main>
       </div>
     </>
+  );
+}
+
+// ── Page export — Suspense required for useSearchParams ───────────────────────
+
+export default function EventsPage() {
+  return (
+    <Suspense>
+      <EventsPageInner />
+    </Suspense>
   );
 }
