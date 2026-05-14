@@ -51,6 +51,14 @@ model Event {
   prizeType          String?   // "cash" | "honorary" | "both" | "internship"
   organizerType      String?   // "university" | "ministry" | "ngo" | "private" | "ieee"
 
+  // Film competition fields
+  isFilmCompetition  Boolean  @default(false)
+  filmDurationMin    Int?     // minimum film duration in seconds
+  filmDurationMax    Int?     // maximum film duration in seconds
+  filmGenres         String[] // accepted genres
+  filmFreewayUrl     String?  // direct FilmFreeway submission URL
+  competitionTopics  String[] // ["AI in healthcare", "Generative AI", "AI ethics"]
+
   @@index([region])
   @@index([category])
   @@index([date])
@@ -70,4 +78,31 @@ model ScrapeRun {
   completedAt  DateTime?
   durationMs   Int?
   errorMessage String?
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  topics    String[]
+  userId    String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model SecurityLog {
+  id        String   @id @default(cuid())
+  type      String
+  ip        String
+  ua        String?
+  path      String?
+  method    String?
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@index([ip])
+  @@index([type])
+  @@index([createdAt])
 }

@@ -35,6 +35,8 @@ interface CompetitionEvent {
   isTunisia?: boolean;
   festivalType?: string | null;
   governorate?: string | null;
+  isFilmCompetition?: boolean;
+  filmFreewayUrl?: string | null;
   qualityScore: number;
   url?: string | null;
 }
@@ -211,15 +213,30 @@ export function CompetitionCard({ event }: CompetitionCardProps) {
         </div>
       </div>
 
-      {/* Apply button */}
-      {event.howToApply && isOpen && (
+      {/* FilmFreeway submit button */}
+      {isOpen && (event.isFilmCompetition || event.filmFreewayUrl || event.howToApply?.includes('filmfreeway')) && (
+        <a
+          href={event.filmFreewayUrl ?? event.howToApply ?? `https://filmfreeway.com/search?q=${encodeURIComponent(event.title)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-[#FF6B35] to-[#FF4500] text-white text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all"
+        >
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+          </svg>
+          قدّم فيلمك على FilmFreeway ↗
+        </a>
+      )}
+
+      {/* Regular apply button */}
+      {isOpen && event.howToApply && !event.isFilmCompetition && !event.filmFreewayUrl && !event.howToApply.includes('filmfreeway') && (
         <a
           href={event.howToApply}
           target="_blank"
           rel="noopener noreferrer"
           className="mt-3 w-full text-center py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
         >
-          Apply now →
+          سجّل توّه ←
         </a>
       )}
       {event.cfpUrl && event.hasCfp && (

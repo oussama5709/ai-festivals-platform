@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { sendTelegramAlert } from '../services/notificationService';
+import { sendTelegramAlert, sendWhatsAppAlert } from '../services/notificationService';
 import { dbCircuit } from './retry';
 
 const prisma = new PrismaClient();
@@ -100,6 +100,83 @@ async function checkConsecutiveFailures(): Promise<void> {
   }
 }
 
+// ── Check for new AI competitions (hourly) ────────────────────────────────────
+
+export async function checkNewAICompetitions(): Promise<void> {
+  if (dbCircuit.isOpen()) return;
+
+  try {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+
+    const newCompetitions = await prisma.event.findMany({
+      where: {
+        isCompetition: true,
+        competitionStatus: 'open',
+        createdAt: { gte: oneHourAgo },
+        OR: [
+          { category: 'hackathon' },
+          { festivalType: 'ai' },
+          { title: { contains: 'AI', mode: 'insensitive' } },
+          { title: { contains: 'intelligence artificielle', mode: 'insensitive' } },
+          { title: { contains: 'ذكاء اصطناعي', mode: 'insensitive' } },
+        ],
+      },
+    });
+
+    log('monitor.ai_competitions', { found: newCompetitions.length });
+
+    for (const comp of newCompetitions) {
+      const daysLeft = comp.submissionDeadline
+        ? Math.ceil((new Date(comp.submissionDeadline).getTime() - Date.now()) / 86400000)
+        : null;
+
+      const message = buildCompetitionMessage(comp, daysLeft);
+      await Promise.allSettled([
+        sendTelegramAlert(message),
+        sendWhatsAppAlert(message),
+      ]);
+    }
+  } catch (err) {
+    log('monitor.ai_competitions.error', { error: (err as Error).message });
+  }
+}
+
+function buildCompetitionMessage(event: any, daysLeft: number | null): string {
+  const lines = [
+    `🎉 مسابقة ذكاء اصطناعي جديدة مفتوحة!`,
+    ``,
+    `🏆 <b>${event.title}</b>`,
+    ``,
+    `📍 <b>المكان:</b> ${event.isOnline ? '🌐 أونلاين' : event.location || 'غير محدد'}`,
+    `🗓️ <b>تاريخ البداية:</b> ${event.date ? new Date(event.date).toLocaleDateString('fr-TN') : 'غير محدد'}`,
+  ];
+
+  if (event.submissionDeadline) {
+    lines.push(`⏰ <b>آخر أجل للتقديم:</b> ${new Date(event.submissionDeadline).toLocaleDateString('fr-TN')}`);
+  }
+  if (daysLeft !== null && daysLeft > 0) {
+    lines.push(`⚠️ <b>باقي:</b> ${daysLeft} يوم باش ينقضي الأجل!`);
+  }
+  if (event.prize) {
+    lines.push(`💰 <b>الجائزة:</b> ${event.prize}`);
+  }
+  if (event.eligibility) {
+    lines.push(`👥 <b>شروط المشاركة:</b> ${event.eligibility}`);
+  }
+  if (event.description) {
+    lines.push(`📝 <b>الوصف:</b> ${String(event.description).slice(0, 200)}...`);
+  }
+  if (event.howToApply) {
+    lines.push(``, `🔗 <b>للتقديم:</b> ${event.howToApply}`);
+  } else if (event.url) {
+    lines.push(``, `🌐 <b>رابط المسابقة:</b> ${event.url}`);
+  }
+  lines.push(``, `📲 شاركها مع أصحابك وقدّم — المنافسة قوية!`);
+  lines.push(``, `<i>AI Festivals Platform — ai-festivals-platform.vercel.app/tunisia</i>`);
+
+  return lines.join('\n');
+}
+
 // ── Public: run all monitor checks ───────────────────────────────────────────
 
 export async function runMonitorChecks(): Promise<void> {
@@ -107,5 +184,6 @@ export async function runMonitorChecks(): Promise<void> {
   await Promise.allSettled([
     checkStaleness(),
     checkConsecutiveFailures(),
+    checkNewAICompetitions(),
   ]);
 }

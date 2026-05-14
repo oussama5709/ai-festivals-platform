@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { CompetitionCard } from '@/components/CompetitionCard';
+import { PushSubscribeButton } from '@/components/PushSubscribeButton';
 
 interface TunisiaEvent {
   id: string;
@@ -127,6 +128,11 @@ export default function TunisiaPage() {
               <div className="text-xs text-muted-foreground mt-1">{s.label}</div>
             </div>
           ))}
+        </div>
+
+        {/* Push notifications subscribe */}
+        <div className="flex justify-center mb-6">
+          <PushSubscribeButton topics={['ai-competitions', 'tunisia']} />
         </div>
 
         {/* Category tabs */}
