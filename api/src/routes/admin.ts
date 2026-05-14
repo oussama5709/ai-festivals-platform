@@ -264,7 +264,7 @@ router.post('/seed-tunisia', requireAdminPassword, async (_req: Request, res: Re
         endDate: new Date('2026-08-15'),
         location: 'Mahrès, Sfax',
         isOnline: false,
-        url: 'https://tunis.events/en/festivals-tunisie',
+        url: 'https://tunis.events/en/festivals-tunisie#mahres-sfax',
         source: 'official-website',
         region: 'africa',
         category: 'conference',
