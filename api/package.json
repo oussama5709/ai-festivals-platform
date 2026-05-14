@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "node scripts/switch-schema.js && prisma generate && tsc",
-    "start": "node dist/index.js",
+    "start": "npx prisma db push --skip-generate && node dist/index.js",
     "railway:migrate": "node scripts/switch-schema.js && prisma migrate deploy",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
