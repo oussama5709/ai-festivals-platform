@@ -1,3 +1,21 @@
+const FESTIVAL_COLORS: Record<string, string> = {
+  'ai':           'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300',
+  'cinema':       'bg-red-100    text-red-700    dark:bg-red-900/30    dark:text-red-300',
+  'photo':        'bg-amber-100  text-amber-700  dark:bg-amber-900/30  dark:text-amber-300',
+  'video':        'bg-blue-100   text-blue-700   dark:bg-blue-900/30   dark:text-blue-300',
+  'mixed-image':  'bg-green-100  text-green-700  dark:bg-green-900/30  dark:text-green-300',
+  'hackathon':    'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+};
+
+const FESTIVAL_EMOJI: Record<string, string> = {
+  'ai':          '🤖',
+  'cinema':      '🎬',
+  'photo':       '📸',
+  'video':       '🎥',
+  'mixed-image': '🎭',
+  'hackathon':   '💻',
+};
+
 interface CompetitionEvent {
   id: string;
   title: string;
@@ -15,6 +33,8 @@ interface CompetitionEvent {
   cfpDeadline?: string | null;
   cfpUrl?: string | null;
   isTunisia?: boolean;
+  festivalType?: string | null;
+  governorate?: string | null;
   qualityScore: number;
   url?: string | null;
 }
@@ -40,14 +60,32 @@ export function CompetitionCard({ event }: CompetitionCardProps) {
 
   const statusLabel = isOpen ? '🟢 Open' : isUpcoming ? '🔵 Upcoming' : '🔴 Closed';
 
+  const festivalColor = event.festivalType
+    ? FESTIVAL_COLORS[event.festivalType] ?? 'bg-secondary text-muted-foreground'
+    : null;
+  const festivalEmoji = event.festivalType ? FESTIVAL_EMOJI[event.festivalType] : null;
+
   return (
-    <div className="group flex flex-col p-5 rounded-2xl border border-border bg-card hover:border-primary/30 hover:shadow-md transition-all duration-200">
+    <div className="group relative flex flex-col p-5 rounded-2xl border border-border bg-card hover:border-primary/30 hover:shadow-md transition-all duration-200">
+      {/* Animated green dot for open events */}
+      {isOpen && (
+        <span className="absolute -top-1 -right-1 flex h-3 w-3" aria-label="Open now">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500 ring-2 ring-background" />
+        </span>
+      )}
+
       {/* Top badges */}
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div className="flex items-center gap-2 flex-wrap">
           {event.isTunisia && (
             <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 font-medium">
               🇹🇳 Tunisia
+            </span>
+          )}
+          {festivalColor && festivalEmoji && (
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${festivalColor}`}>
+              {festivalEmoji} {event.festivalType}
             </span>
           )}
           {(event.competitionStatus || event.isCompetition) && (
@@ -145,6 +183,14 @@ export function CompetitionCard({ event }: CompetitionCardProps) {
         </div>
       )}
 
+      {/* Governorate */}
+      {event.governorate && (
+        <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
+          <span>🏛</span>
+          <span>{event.governorate}</span>
+        </div>
+      )}
+
       {/* Location & Date */}
       <div className="mt-auto pt-3 border-t border-border/60 flex flex-col gap-1.5">
         {event.date && (
@@ -189,4 +235,3 @@ export function CompetitionCard({ event }: CompetitionCardProps) {
     </div>
   );
 }
-

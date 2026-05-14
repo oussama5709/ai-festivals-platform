@@ -44,6 +44,13 @@ model Event {
   // Tunisia specific
   isTunisia          Boolean   @default(false)
 
+  // Festival / media classification
+  festivalType       String?   // "cinema" | "photo" | "video" | "mixed-image" | "ai" | "hackathon"
+  mediaType          String?   // "film" | "short-film" | "documentary" | "photo" | "video" | "all"
+  governorate        String?   // "Tunis" | "Sfax" | "Sousse" | "Gabes" ...
+  prizeType          String?   // "cash" | "honorary" | "both" | "internship"
+  organizerType      String?   // "university" | "ministry" | "ngo" | "private" | "ieee"
+
   @@index([region])
   @@index([category])
   @@index([date])
