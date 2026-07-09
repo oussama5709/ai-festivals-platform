@@ -23,6 +23,7 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  output: 'standalone',
   images: {
     domains: ['eventbrite.com', 'meetup.com', 'neurips.cc', 'icml.cc'],
   },
