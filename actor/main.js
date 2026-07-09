@@ -1,6 +1,7 @@
 const { Actor } = require('apify'); // SDK v3
 const axios    = require('axios');
 const cheerio  = require('cheerio');
+const { scrapeTunisiaEvents } = require('./sources/tunisiaSource');
 
 // ── Reliable aggregator sources (no login required) ──────────────────────────
 
@@ -261,7 +262,16 @@ Actor.main(async () => {
   if (aiconf.status === 'fulfilled')   all.push(...aiconf.value);
   if (wiki.status === 'fulfilled')     all.push(...wiki.value);
 
-  // 3. Dedup + filter by date + cap
+  // 3. Tunisia-specific source (only runs if africa/worldwide is requested —
+  // no point scraping it for a search scoped to e.g. asia-only).
+  if (searchRegions.includes('worldwide') || searchRegions.includes('africa')) {
+    console.log('\n🇹🇳 Scraping Tunisia source (tunis.events)...');
+    const tunisia = await Promise.allSettled([scrapeTunisiaEvents()]);
+    if (tunisia[0].status === 'fulfilled') all.push(...tunisia[0].value);
+    else console.log(`  Tunisia source: failed (${tunisia[0].reason?.message})`);
+  }
+
+  // 4. Dedup + filter by date + cap
   all = dedup(all);
   all = all.filter(e => {
     if (!e.date) return true;
@@ -269,7 +279,7 @@ Actor.main(async () => {
   });
   all = all.slice(0, maxResults);
 
-  // 4. Push to dataset
+  // 5. Push to dataset
   console.log(`\n📦 Pushing ${all.length} events to dataset...`);
   for (const ev of all) {
     await dataset.pushData(ev);
