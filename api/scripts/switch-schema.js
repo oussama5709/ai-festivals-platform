@@ -6,6 +6,7 @@
  */
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const schemaPath = path.join(__dirname, '..', 'prisma', 'schema.prisma');
 const dbUrl = process.env.DATABASE_URL || '';
