@@ -32,7 +32,70 @@ export interface Event {
   cfpDescription: string | null;
   // Tunisia
   isTunisia: boolean;
+  // Registration Intelligence
+  officialWebsite: string | null;
+  registrationStatus: RegistrationStatus | null;
+  registrationOpensAt: string | null;
+  registrationClosesAt: string | null;
+  participationCost: number | null;
+  currency: string | null;
+  isFree: boolean | null;
+  countryRestrictions: string | null;
+  ageRestrictions: string | null;
+  requiredDocuments: string | null;
+  rulesPdfUrl: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  organizerName: string | null;
+  organizerWebsite: string | null;
+  lastVerifiedAt: string | null;
+  registrationConfidence: number | null;
+  registrationLinks: RegistrationLink[];
 }
+
+export type RegistrationStatus =
+  | 'open' | 'opening_soon' | 'closing_soon' | 'closed'
+  | 'cancelled' | 'waiting_list' | 'invitation_only' | 'unknown';
+
+export interface RegistrationLink {
+  id: string;
+  platform: string;
+  url: string;
+  label: string | null;
+  isPrimary: boolean;
+  confidence: number;
+  status: string;
+}
+
+export const REGISTRATION_STATUS_LABELS: Record<RegistrationStatus, string> = {
+  open: 'Open',
+  opening_soon: 'Opening soon',
+  closing_soon: 'Closing soon',
+  closed: 'Closed',
+  cancelled: 'Cancelled',
+  waiting_list: 'Waiting list',
+  invitation_only: 'Invitation only',
+  unknown: 'Unknown',
+};
+
+export const PLATFORM_LABELS: Record<string, string> = {
+  official: 'Official website',
+  filmfreeway: 'FilmFreeway',
+  festhome: 'Festhome',
+  eventbrite: 'Eventbrite',
+  'google-form': 'Google Form',
+  submittable: 'Submittable',
+  easychair: 'EasyChair',
+  'ex-ordo': 'Ex Ordo',
+  openreview: 'OpenReview',
+  conftool: 'ConfTool',
+  'microsoft-cmt': 'Microsoft CMT',
+  pretalx: 'Pretalx',
+  'oxford-abstracts': 'Oxford Abstracts',
+  whova: 'Whova',
+  openwater: 'OpenWater',
+  other: 'Registration link',
+};
 
 export interface EventsResponse {
   events: Event[];
@@ -72,9 +135,11 @@ export interface EventsQuery {
   limit?: number;
   sort?: string;
   isOnline?: boolean;
+  isFree?: boolean;
   openCompetitions?: boolean;
   hasCfp?: boolean;
   isTunisia?: boolean;
+  registrationStatus?: string;
 }
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {

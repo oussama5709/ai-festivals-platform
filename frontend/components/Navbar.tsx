@@ -9,6 +9,7 @@ import { LanguageSwitcher } from './LanguageSwitcher';
 const NAV_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/events', label: 'Events' },
+  { href: '/registrations', label: '🟢 Open Registrations' },
   { href: '/tunisia', label: '🇹🇳 Tunisia' },
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/api-docs', label: 'API' },

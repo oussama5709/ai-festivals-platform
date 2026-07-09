@@ -4,8 +4,6 @@ import { getCached, setCached } from '../services/cacheService';
 
 const router = Router();
 
-// ── Cache-Control helpers ─────────────────────────────────────────────────────
-// Tells CDN/browser to cache list responses for 60s, detail for 5min
 function setCacheHeaders(res: Response, seconds: number) {
   res.set('Cache-Control', `public, s-maxage=${seconds}, stale-while-revalidate=${seconds * 2}`);
 }
@@ -31,9 +29,11 @@ router.get('/', async (req: Request, res: Response) => {
       limit: req.query['limit'] ? Number(req.query['limit']) : 20,
       sort: req.query['sort'] as 'date' | 'quality' | 'relevance',
       isOnline: req.query['isOnline'] === 'true' ? true : req.query['isOnline'] === 'false' ? false : undefined,
+      isFree: req.query['isFree'] === 'true',
       openCompetitions: req.query['openCompetitions'] === 'true',
       hasCfp: req.query['hasCfp'] === 'true',
       isTunisia: req.query['isTunisia'] === 'true',
+      registrationStatus: req.query['registrationStatus'] as string,
     });
 
     setCached(cacheKey, result);

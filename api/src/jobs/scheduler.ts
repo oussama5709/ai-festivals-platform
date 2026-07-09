@@ -1,11 +1,10 @@
 import { runPipeline } from './pipeline';
 import { runMonitorChecks, setNextScheduledRun } from './monitor';
+import { startLinkValidatorLoop } from './linkValidator';
 
 function log(event: string, data?: object) {
   console.log(JSON.stringify({ ts: new Date().toISOString(), event, ...data }));
 }
-
-// ── Compute ms until next HH:MM UTC ──────────────────────────────────────────
 
 function msUntilNextUTC(hour: number, minute = 0): number {
   const now = new Date();
@@ -29,8 +28,6 @@ function msUntilNextSundayUTC(hour: number): number {
   return next.getTime() - now.getTime();
 }
 
-// ── Daily scrape: 06:00 UTC ───────────────────────────────────────────────────
-
 function scheduleDailyScrape(): void {
   const delay = msUntilNextUTC(6, 0);
   const nextRun = new Date(Date.now() + delay).toISOString();
@@ -43,11 +40,9 @@ function scheduleDailyScrape(): void {
       ['worldwide', 'middle-east', 'africa', 'europe', 'asia', 'americas'],
       500
     );
-    scheduleDailyScrape(); // reschedule for tomorrow
+    scheduleDailyScrape();
   }, delay);
 }
-
-// ── Weekly deep scrape: Sunday 03:00 UTC, higher quality focus ────────────────
 
 function scheduleWeeklyDeepScrape(): void {
   const delay = msUntilNextSundayUTC(3);
@@ -63,8 +58,6 @@ function scheduleWeeklyDeepScrape(): void {
   }, delay);
 }
 
-// ── Monitor checks: every 30 min ─────────────────────────────────────────────
-
 function startMonitorLoop(): void {
   const THIRTY_MIN = 30 * 60 * 1000;
   setInterval(async () => {
@@ -73,11 +66,10 @@ function startMonitorLoop(): void {
   log('scheduler.monitor.started', { intervalMin: 30 });
 }
 
-// ── Public: boot all schedulers ──────────────────────────────────────────────
-
 export function startScheduler(): void {
   log('scheduler.boot');
   scheduleDailyScrape();
   scheduleWeeklyDeepScrape();
   startMonitorLoop();
+  startLinkValidatorLoop();
 }

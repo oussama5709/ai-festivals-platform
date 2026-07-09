@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { sendTelegramAlert, sendWhatsAppAlert } from '../services/notificationService';
+import { computeRegistrationStatus, resolveEffectiveDates } from '../services/registrationStatusService';
 import { dbCircuit } from './retry';
 
 const prisma = new PrismaClient();
@@ -47,6 +48,17 @@ export function setNextScheduledRun(iso: string): void {
 
 export function getPipelineHealth(): PipelineHealth {
   return { ...health, dbCircuitState: dbCircuit.getState() };
+}
+
+// ── Monitor loop liveness (separate from pipeline/scrape health above) ────────
+// Answers "is the 30-min monitor loop actually ticking?" independently of
+// whether any scrape has run recently.
+
+let monitorLastRunAt: string | null = null;
+let monitorRunCount = 0;
+
+export function getMonitorHealth(): { lastRunAt: string | null; runCount: number } {
+  return { lastRunAt: monitorLastRunAt, runCount: monitorRunCount };
 }
 
 // ── Check for stale data ──────────────────────────────────────────────────────
@@ -177,6 +189,61 @@ function buildCompetitionMessage(event: any, daysLeft: number | null): string {
   return lines.join('\n');
 }
 
+// ── Registration Intelligence: keep the persisted registrationStatus column
+// fresh so DB-level filtering (WHERE registrationStatus IN (...)) stays
+// accurate even between crawls. Pure date math — no network calls, cheap
+// enough to run on every 30-min monitor tick. The API layer additionally
+// recomputes status live on every read (see eventService.ts), so this is a
+// freshness optimization for filtering, not the source of truth for display. ──
+
+async function refreshRegistrationStatuses(): Promise<void> {
+  if (dbCircuit.isOpen()) return;
+
+  try {
+    const events = await prisma.event.findMany({
+      where: {
+        OR: [
+          { registrationOpensAt: { not: null } },
+          { registrationClosesAt: { not: null } },
+          { submissionDeadline: { not: null } },
+          { cfpDeadline: { not: null } },
+        ],
+      },
+      select: {
+        id: true,
+        registrationOpensAt: true,
+        registrationClosesAt: true,
+        submissionDeadline: true,
+        cfpDeadline: true,
+        registrationStatus: true,
+      },
+    });
+
+    let updated = 0;
+    for (const event of events) {
+      const { opensAt, closesAt } = resolveEffectiveDates(event);
+      const nextStatus = computeRegistrationStatus({
+        opensAt,
+        closesAt,
+        cancelled: event.registrationStatus === 'cancelled',
+        waitingList: event.registrationStatus === 'waiting_list',
+        invitationOnly: event.registrationStatus === 'invitation_only',
+      });
+      if (nextStatus !== event.registrationStatus) {
+        await prisma.event.update({
+          where: { id: event.id },
+          data: { registrationStatus: nextStatus },
+        }).catch(() => {});
+        updated++;
+      }
+    }
+
+    log('monitor.registration_status_refresh', { checked: events.length, updated });
+  } catch (err) {
+    log('monitor.registration_status_refresh.error', { error: (err as Error).message });
+  }
+}
+
 // ── Public: run all monitor checks ───────────────────────────────────────────
 
 export async function runMonitorChecks(): Promise<void> {
@@ -185,5 +252,8 @@ export async function runMonitorChecks(): Promise<void> {
     checkStaleness(),
     checkConsecutiveFailures(),
     checkNewAICompetitions(),
+    refreshRegistrationStatuses(),
   ]);
+  monitorLastRunAt = new Date().toISOString();
+  monitorRunCount++;
 }

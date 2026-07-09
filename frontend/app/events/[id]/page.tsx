@@ -7,6 +7,7 @@ import {
 import Navbar from '@/components/Navbar';
 import EventCard from '@/components/EventCard';
 import { ShareButton } from '@/components/ShareButton';
+import { ApplyNowButton } from '@/components/ApplyNowButton';
 import { fetchEvent, fetchEvents, generateIcsContent } from '@/lib/api';
 import {
   formatDate, qualityColor, qualityLabel, REGION_FLAGS,
@@ -124,6 +125,7 @@ export default async function EventDetailPage({ params }: PageProps) {
 
           {/* Actions */}
           <div className="flex flex-wrap gap-3 pt-2 border-t border-border">
+            <ApplyNowButton event={event} />
             {event.url && (
               <a
                 href={event.url}

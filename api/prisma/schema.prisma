@@ -59,6 +59,29 @@ model Event {
   filmFreewayUrl     String?  // direct FilmFreeway submission URL
   competitionTopics  String[] // ["AI in healthcare", "Generative AI", "AI ethics"]
 
+  // ── Registration Intelligence ────────────────────────────────────────────
+  // Free-cost / eligibility metadata discovered by registrationDiscoveryService.
+  officialWebsite        String?    // organizer's canonical site (falls back to `url` if unset)
+  registrationStatus     String?    // "open" | "opening_soon" | "closing_soon" | "closed" | "cancelled" | "waiting_list" | "invitation_only" | "unknown"
+  registrationOpensAt    DateTime?
+  registrationClosesAt   DateTime?  // generic close date; falls back to submissionDeadline/cfpDeadline if unset
+  participationCost      Float?
+  currency               String?
+  isFree                 Boolean?
+  countryRestrictions    String?
+  ageRestrictions        String?
+  requiredDocuments      String?
+  rulesPdfUrl            String?
+  contactEmail           String?
+  contactPhone           String?
+  organizerName          String?
+  organizerWebsite       String?
+  socialMedia            String?    // JSON string, e.g. {"twitter":"...","instagram":"..."}
+  lastVerifiedAt         DateTime?
+  registrationConfidence Float?     // 0-1 confidence score of the discovered registration data
+
+  registrationLinks RegistrationLink[]
+
   @@index([region])
   @@index([category])
   @@index([date])
@@ -66,6 +89,34 @@ model Event {
   @@index([isCompetition])
   @@index([hasCfp])
   @@index([isTunisia])
+  @@index([registrationStatus])
+}
+
+// One event can accept submissions through multiple official platforms
+// (official website + FilmFreeway + Eventbrite + Google Form, etc).
+model RegistrationLink {
+  id            String    @id @default(cuid())
+  eventId       String
+  event         Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  platform      String    // "official" | "filmfreeway" | "festhome" | "eventbrite" | "google-form" |
+                          // "submittable" | "easychair" | "ex-ordo" | "openreview" | "conftool" |
+                          // "microsoft-cmt" | "pretalx" | "oxford-abstracts" | "whova" | "openwater" | "other"
+  url           String
+  label         String?   // raw anchor text found on the page, e.g. "Apply Now"
+  isPrimary     Boolean   @default(false)
+  confidence    Float     @default(0) // 0-1, how sure the heuristic is this is a real official registration link
+
+  status        String    @default("unknown") // "valid" | "broken" | "unknown"
+  isActive      Boolean   @default(true)       // false once superseded by a replacement link (kept for history)
+  lastCheckedAt DateTime?
+  lastValidAt   DateTime?
+  discoveredAt  DateTime  @default(now())
+
+  @@unique([eventId, url])
+  @@index([eventId])
+  @@index([platform])
+  @@index([status])
 }
 
 model ScrapeRun {
