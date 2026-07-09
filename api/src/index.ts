@@ -18,7 +18,8 @@ import notificationsRouter from './routes/notifications';
 import { autoSeed } from './startup/autoSeed';
 import { startKeepAlive } from './jobs/keepAlive';
 import { startScheduler } from './jobs/scheduler';
-import { getPipelineHealth } from './jobs/monitor';
+import { getPipelineHealth, getMonitorHealth } from './jobs/monitor';
+import { getLinkValidatorHealth } from './jobs/linkValidator';
 
 const prisma = new PrismaClient();
 
@@ -39,6 +40,9 @@ app.use(sanitizeInputs);
 
 app.get('/api/health', (_req, res) => {
   const pipeline = getPipelineHealth();
+  const monitor = getMonitorHealth();
+  const linkValidator = getLinkValidatorHealth();
+
   res.json({
     status: pipeline.status === 'down' ? 'degraded' : 'ok',
     uptime: process.uptime(),
@@ -51,6 +55,22 @@ app.get('/api/health', (_req, res) => {
       consecutiveFailures: pipeline.consecutiveFailures,
       nextRun: pipeline.nextScheduledRun,
       dbCircuit: pipeline.dbCircuitState,
+    },
+    // Independent liveness for the recurring jobs — these run on their own
+    // in-process loops (setInterval), so their "lastRun" only advances if the
+    // loop is actually alive. If lastRun stops advancing across polls, the
+    // process likely restarted/crashed without the loop restarting.
+    monitor: {
+      lastRun: monitor.lastRunAt,
+      runCount: monitor.runCount,
+      expectedIntervalMin: 30,
+    },
+    linkValidator: {
+      lastRun: linkValidator.lastRunAt,
+      runCount: linkValidator.runCount,
+      lastChecked: linkValidator.lastChecked,
+      lastBroken: linkValidator.lastBroken,
+      expectedIntervalHours: 6,
     },
   });
 });
