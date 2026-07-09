@@ -3,6 +3,13 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
+
+# NEXT_PUBLIC_* vars are inlined into the client bundle at build time, so they
+# must be passed in explicitly as build args (Railway/Docker env vars set on
+# the service are only available at container runtime, not during `docker build`).
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 RUN npm run build
 
 FROM node:20-alpine AS runner
