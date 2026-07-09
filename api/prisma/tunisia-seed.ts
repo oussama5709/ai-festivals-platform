@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
-const TUNISIA_EVENTS = [
+export const TUNISIA_EVENTS = [
 
   // ═══════════════════════════════════════════
   // 🤖 مسابقات الذكاء الاصطناعي
@@ -416,16 +416,16 @@ const TUNISIA_EVENTS = [
 
 ];
 
-async function seedTunisiaFull() {
+export async function seedTunisiaFull(client: PrismaClient = prisma, disconnect = true) {
   console.log('🇹🇳 Seeding full Tunisia events database...\n');
 
-  const deleted = await prisma.event.deleteMany({ where: { isTunisia: true } });
+  const deleted = await client.event.deleteMany({ where: { isTunisia: true } });
   console.log(`🗑  Cleared ${deleted.count} old Tunisia events\n`);
 
   const byType: Record<string, number> = {};
 
   for (const event of TUNISIA_EVENTS) {
-    await prisma.event.create({ data: event as any });
+    await client.event.create({ data: event as any });
     const t = event.festivalType || 'other';
     byType[t] = (byType[t] || 0) + 1;
     const dot =
@@ -443,7 +443,12 @@ async function seedTunisiaFull() {
   );
   console.log(`\n✅ Total: ${TUNISIA_EVENTS.length} Tunisia events seeded`);
 
-  await prisma.$disconnect();
+  if (disconnect) await client.$disconnect();
+
+  return { cleared: deleted.count, seeded: TUNISIA_EVENTS.length, byType };
 }
 
-seedTunisiaFull().catch(console.error);
+// Only auto-run when executed directly (e.g. `npm run seed:tunisia`), not when imported by the admin route.
+if (require.main === module) {
+  seedTunisiaFull().catch(console.error);
+}
