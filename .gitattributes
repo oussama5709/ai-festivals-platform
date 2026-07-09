@@ -1,0 +1,16 @@
+# Normalize line endings for all text files to LF in the repository,
+# regardless of the OS/editor used to check them out. This stops files
+# from perpetually showing as "modified" due to CRLF/LF churn on Windows.
+* text=auto eol=lf
+
+# Binary files that must never be line-ending-normalized
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
