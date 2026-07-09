@@ -55,6 +55,35 @@ function parseDateRange(dates: string): { start: Date | null; end: Date | null }
   };
 }
 
+// ── Tunisia auto-classification ──────────────────────────────────────────────
+// Any event ingested from ANY source (generic scraper or a dedicated Tunisia
+// source) gets tagged automatically if its text mentions Tunisia/Tunis or a
+// governorate name. Dedicated sources may also set isTunisia/festivalType
+// explicitly on the item — that takes priority over this heuristic.
+
+const TUNISIA_GOVERNORATES = [
+  'tunis', 'sousse', 'sfax', 'ariana', 'nabeul', 'bizerte', 'gabes', 'gabès',
+  'gafsa', 'kairouan', 'kasserine', 'kebili', 'kébili', 'le kef', 'mahdia',
+  'manouba', 'medenine', 'médenine', 'monastir', 'sidi bouzid', 'siliana',
+  'tataouine', 'tozeur', 'zaghouan', 'ben arous', 'jendouba', 'béja', 'beja',
+];
+
+function detectIsTunisia(text: string): boolean {
+  const t = text.toLowerCase();
+  if (t.includes('tunisia') || t.includes('tunisie') || t.includes('tunisienne') || t.includes('tunisien')) return true;
+  return TUNISIA_GOVERNORATES.some((g) => t.includes(g));
+}
+
+function detectFestivalType(text: string): string | null {
+  const t = text.toLowerCase();
+  if (/(cinema|cinéma|film|court[- ]métrage|documentaire|jcc\b)/.test(t)) return 'cinema';
+  if (/hackathon|hack[- ]?a[- ]?thon/.test(t)) return 'hackathon';
+  if (/(photo|photographie|photography)/.test(t)) return 'photo';
+  if (/(intelligence artificielle|\bai\b|\bia\b|machine learning|deep learning|\bml\b)/.test(t)) return 'ai';
+  if (/(biennale|exposition|art contemporain|festival international|jaou)/.test(t)) return 'mixed-image';
+  return null;
+}
+
 export function mapToEvent(item: Record<string, unknown>): Prisma.EventCreateInput | null {
   const isActorFormat = typeof item['name'] === 'string' && !item['title'];
 
@@ -102,9 +131,24 @@ export function mapToEvent(item: Record<string, unknown>): Prisma.EventCreateInp
     isOnline = Boolean(item['isOnline'] ?? false);
   }
 
+  const description = item['description'] ? String(item['description']) : null;
+  const classifyText = [title, location, description].filter(Boolean).join(' ');
+
+  // Dedicated sources (e.g. a Tunisia-specific scraper) may set these explicitly;
+  // otherwise fall back to detecting them from the event's own text.
+  const isTunisia = typeof item['isTunisia'] === 'boolean'
+    ? (item['isTunisia'] as boolean)
+    : detectIsTunisia(classifyText);
+
+  const festivalType = item['festivalType']
+    ? String(item['festivalType'])
+    : (isTunisia ? detectFestivalType(classifyText) : null);
+
+  const governorate = item['governorate'] ? String(item['governorate']) : null;
+
   return {
     title,
-    description: item['description'] ? String(item['description']) : null,
+    description,
     date: date && !isNaN(date.getTime()) ? date : null,
     endDate: endDate && !isNaN(endDate.getTime()) ? endDate : null,
     location,
@@ -116,6 +160,9 @@ export function mapToEvent(item: Record<string, unknown>): Prisma.EventCreateInp
     category,
     qualityScore: Math.max(0, Math.min(1, qualityScore)),
     scrapedAt: new Date(),
+    isTunisia,
+    festivalType,
+    governorate,
   };
 }
 

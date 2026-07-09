@@ -1,0 +1,457 @@
+import { PrismaClient } from '@prisma/client';
+
+// Curated, manually-researched baseline of real Tunisian AI/tech/culture events.
+// This lives under src/ (not prisma/) so it can be imported by both the CLI
+// seed script (api/prisma/tunisia-seed.ts) and the admin HTTP route
+// (api/src/routes/admin.ts) without violating tsconfig's rootDir="./src".
+//
+// This is a fallback baseline, not a substitute for live scraping — see
+// api/src/services/tunisiaSourceService.ts for the automated source that
+// pulls current events from tunis.events, JCC, etc.
+
+export const TUNISIA_EVENTS = [
+
+  // ═══════════════════════════════════════════
+  // 🤖 مسابقات الذكاء الاصطناعي
+  // ═══════════════════════════════════════════
+
+  {
+    title: 'AINS 3.0 Hackathon — AI National Summit',
+    description: 'Troisième édition du Artificial Intelligence National Summit organisé par IEEE INSAT CS SBC à Sousse. Hackathon de 48h ouvert aux étudiants et développeurs tunisiens. Thème: IA au service des territoires. Prizes: 1ère place 2000 DT, 2ème 1500 DT, 3ème 1000 DT + 4 stages Orange Tunisia.',
+    date: new Date('2025-06-13'),
+    endDate: new Date('2025-06-15'),
+    location: 'Sousse, Tunisia',
+    isOnline: false,
+    url: 'https://ains3-hackathon.devpost.com',
+    source: 'official-website',
+    region: 'africa',
+    category: 'hackathon',
+    qualityScore: 0.92,
+    isTunisia: true,
+    isCompetition: true,
+    prize: '2000 DT (1ère) + 1500 DT (2ème) + 1000 DT (3ème) + 4 stages Orange Tunisia',
+    prizeAmount: 4500,
+    prizeCurrency: 'TND',
+    prizeType: 'both',
+    eligibility: 'Étudiants et développeurs en Tunisie. Équipes jusqu\'à 4 membres.',
+    howToApply: 'https://ains3-hackathon.devpost.com',
+    submissionDeadline: new Date('2025-06-12'),
+    competitionStatus: 'closed',
+    governorate: 'Sousse',
+    organizerType: 'ieee',
+    festivalType: 'hackathon',
+    scrapedAt: new Date(),
+  },
+
+  {
+    title: 'IndabaX Tunisia 2025 — AI Hackathon',
+    description: '6ème édition de la conférence Deep Learning IndabaX Tunisia. Hackathon IA sur la 5G, panels, workshops. Organisé par IEEE Sup\'Com Student Branch à El Ghazela Technopark.',
+    date: new Date('2025-05-03'),
+    endDate: new Date('2025-05-04'),
+    location: 'Sup\'Com, El Ghazela Technopark, Ariana',
+    isOnline: false,
+    url: 'https://www.indabaxtunisia.com/2025/index.html',
+    source: 'official-website',
+    region: 'africa',
+    category: 'hackathon',
+    qualityScore: 0.88,
+    isTunisia: true,
+    isCompetition: true,
+    prize: 'Prix + Certificats + Networking',
+    prizeType: 'honorary',
+    eligibility: 'Étudiants et professionnels IA en Tunisie',
+    howToApply: 'https://www.indabaxtunisia.com/2025/index.html',
+    competitionStatus: 'closed',
+    governorate: 'Ariana',
+    organizerType: 'ieee',
+    festivalType: 'ai',
+    scrapedAt: new Date(),
+  },
+
+  {
+    title: 'AI Hackathon 2025 Tunis — Veo Worldwide',
+    description: 'Hackathon IA à Tunis avec 125 participants enregistrés. Organisé par Veo Worldwide Services. Focus sur des solutions IA pratiques pour le marché tunisien.',
+    date: new Date('2025-03-01'),
+    location: 'Tunis, Tunisia',
+    isOnline: false,
+    url: 'https://www.facebook.com/veoworldwideservices/posts/1072999821511899',
+    source: 'facebook',
+    region: 'africa',
+    category: 'hackathon',
+    qualityScore: 0.75,
+    isTunisia: true,
+    isCompetition: true,
+    prize: 'Prix + Reconnaissance',
+    prizeType: 'honorary',
+    competitionStatus: 'closed',
+    governorate: 'Tunis',
+    organizerType: 'private',
+    festivalType: 'hackathon',
+    scrapedAt: new Date(),
+  },
+
+  {
+    title: 'Hackathon Municipal 2026 — 50 ans, 50 innovations',
+    description: 'Hackathon de 24h organisé par la Fédération Nationale des Communes Tunisiennes dans 5 villes: Djerba, Sfax, Sousse, Bizerte et Tunis. Thème: innovation locale, IA, transformation numérique des communes. Équipes pluridisciplinaires d\'étudiants universitaires.',
+    date: new Date('2026-04-01'),
+    endDate: new Date('2026-05-01'),
+    location: 'Djerba / Sfax / Sousse / Bizerte / Tunis',
+    isOnline: false,
+    url: 'https://letemps.news/2026/05/02/cloture-du-hackathon-municipal',
+    source: 'official-website',
+    region: 'africa',
+    category: 'hackathon',
+    qualityScore: 0.87,
+    isTunisia: true,
+    isCompetition: true,
+    prize: 'Reconnaissance + Intégration projet dans la commune',
+    prizeType: 'honorary',
+    eligibility: 'Étudiants universitaires tunisiens de toutes disciplines',
+    competitionStatus: 'closed',
+    governorate: 'Multiple',
+    organizerType: 'ministry',
+    festivalType: 'hackathon',
+    scrapedAt: new Date(),
+  },
+
+  {
+    title: 'ActInSpace Hackathon Tunisia 2026',
+    description: 'Hackathon spatial organisé par AGEOS Tunisia. Les équipes développent des solutions innovantes utilisant données spatiales et IA pour des défis terrestres. Vainqueurs annoncés en 2026.',
+    date: new Date('2026-03-01'),
+    location: 'Tunis, Tunisia',
+    isOnline: false,
+    url: 'https://www.facebook.com/AGEOS.Tunisie/posts/1362927485864061',
+    source: 'facebook',
+    region: 'africa',
+    category: 'hackathon',
+    qualityScore: 0.82,
+    isTunisia: true,
+    isCompetition: true,
+    prize: 'Voyage + Reconnaissance internationale',
+    prizeType: 'both',
+    competitionStatus: 'closed',
+    governorate: 'Tunis',
+    organizerType: 'ngo',
+    festivalType: 'hackathon',
+    scrapedAt: new Date(),
+  },
+
+  {
+    title: 'LPKM 2026 — Language Processing & Knowledge Management',
+    description: '4ème édition de la conférence internationale sur le NLP et la gestion des connaissances. Organisée par le MIRACL Lab, Université de Sfax. Se tient à Sousse. Appel à communications ouvert en NLP, Machine Learning, IA. Soumission via CMT Microsoft.',
+    date: new Date('2026-05-05'),
+    endDate: new Date('2026-05-07'),
+    location: 'Royal Kenz Hotel, Port El Kantaoui, Sousse',
+    isOnline: false,
+    url: 'https://sites.google.com/fsegs.usf.tn/lpkm-2026/',
+    source: 'official-website',
+    region: 'africa',
+    category: 'conference',
+    qualityScore: 0.91,
+    isTunisia: true,
+    isCompetition: false,
+    hasCfp: true,
+    cfpUrl: 'https://cmt3.research.microsoft.com/LPKM2026',
+    cfpDescription: 'NLP, ML, IA, traitement du langage arabe et multilingue',
+    competitionStatus: 'open',
+    governorate: 'Sousse',
+    organizerType: 'university',
+    festivalType: 'ai',
+    scrapedAt: new Date(),
+  },
+
+  {
+    title: 'Orange AI Hackathon Tunisia — TSYP 13',
+    description: 'Hackathon IA en télécommunications de 22h organisé par IEEE Tunisia. Les participants développent des solutions IA pour résoudre des problèmes réels dans les télécoms. Organisé dans le cadre du congrès annuel TSYP 13.',
+    date: new Date('2026-06-01'),
+    location: 'Tunis, Tunisia',
+    isOnline: false,
+    url: 'https://tsyp.ieee.tn/',
+    source: 'official-website',
+    region: 'africa',
+    category: 'hackathon',
+    qualityScore: 0.86,
+    isTunisia: true,
+    isCompetition: true,
+    prize: 'Cash prizes + Stages Orange Tunisia',
+    prizeType: 'both',
+    eligibility: 'Membres IEEE Student Branches en Tunisie',
+    howToApply: 'https://tsyp.ieee.tn/',
+    competitionStatus: 'open',
+    governorate: 'Tunis',
+    organizerType: 'ieee',
+    festivalType: 'hackathon',
+    scrapedAt: new Date(),
+  },
+
+  // ═══════════════════════════════════════════
+  // 🎬 مهرجانات السينما
+  // ═══════════════════════════════════════════
+
+  {
+    title: 'أيام قرطاج السينمائية — JCC 2025 (الدورة 36)',
+    description: 'أعرق مهرجان سينمائي في تونس والمنطقة العربية والأفريقية، تأسس 1966. الدورة 36 تضم 200+ فيلم من العالم العربي وأفريقيا. الجوائز: التانيت الذهبي، الفضي، البرونزي. 9 أفلام تونسية في المسابقة الرسمية منها "وين يأخذنا الريح"، "صوت هند رجب"، "سماء بلا أرض".',
+    date: new Date('2025-12-13'),
+    endDate: new Date('2025-12-20'),
+    location: 'Théâtre Municipal de Tunis + 10 villes tunisiennes',
+    isOnline: false,
+    url: 'https://www.jcctunisie.org',
+    source: 'official-website',
+    region: 'africa',
+    category: 'conference',
+    qualityScore: 0.97,
+    isTunisia: true,
+    isCompetition: true,
+    prize: 'التانيت الذهبي (جائزة شرفية + مالية)',
+    prizeType: 'both',
+    eligibility: 'أفلام عربية وأفريقية وتونسية',
+    howToApply: 'https://inscription.jcctunisie.org/',
+    competitionStatus: 'closed',
+    governorate: 'Tunis + Multiple',
+    organizerType: 'ministry',
+    festivalType: 'cinema',
+    mediaType: 'film',
+    scrapedAt: new Date(),
+  },
+
+  {
+    title: 'Festival CineF 2026 — Journées du Film Francophone',
+    description: '15 films de 13 pays francophones (Belgique, France, Canada, Maroc, Côte d\'Ivoire...). Projections du 9 au 25 avril 2026 aux Instituts Français de Tunisie à Tunis, Sousse et Sfax, et au Centre d\'art B7L9. Entrée libre. Organisé par les Ambassadeurs Francophones de Tunisie.',
+    date: new Date('2026-04-09'),
+    endDate: new Date('2026-04-25'),
+    location: 'IFT Tunis / IFT Sousse / IFT Sfax / B7L9 La Marsa',
+    isOnline: false,
+    url: 'https://www.webmanagercenter.com/2026/03/27/563763/',
+    source: 'official-website',
+    region: 'africa',
+    category: 'conference',
+    qualityScore: 0.90,
+    isTunisia: true,
+    isCompetition: false,
+    competitionStatus: 'open',
+    governorate: 'Tunis / Sousse / Sfax',
+    organizerType: 'ngo',
+    festivalType: 'cinema',
+    mediaType: 'film',
+    scrapedAt: new Date(),
+  },
+
+  {
+    title: 'Medenine International Film Festival — Djerba',
+    description: 'Festival international de cinéma à Djerba (Médenine). Vitrine du cinéma mondial en Tunisie du Sud. Projections de films internationaux et tunisiens dans un cadre méditerranéen unique.',
+    date: new Date('2026-09-01'),
+    location: 'Djerba, Médenine',
+    isOnline: false,
+    url: 'https://filmfreeway.com/MedenineInternationalFilmFestival-Tunisia',
+    source: 'official-website',
+    region: 'africa',
+    category: 'conference',
+    qualityScore: 0.82,
+    isTunisia: true,
+    isCompetition: true,
+    prize: 'Trophées + Reconnaissance internationale',
+    prizeType: 'honorary',
+    howToApply: 'https://filmfreeway.com/MedenineInternationalFilmFestival-Tunisia',
+    competitionStatus: 'open',
+    governorate: 'Médenine',
+    organizerType: 'ngo',
+    festivalType: 'cinema',
+    mediaType: 'film',
+    scrapedAt: new Date(),
+  },
+
+  {
+    title: 'I-FEST² — International Festival of Engineering Science & Technology',
+    description: 'Festival international de 9 jours organisé par ATAST (Association Tunisienne des Arts, Sciences et Technologies). Compétition de projets scientifiques et technologiques, workshops, expositions. Ouvert aux étudiants du monde entier avec présence physique en Tunisie.',
+    date: new Date('2026-07-01'),
+    location: 'Tunis, Tunisia',
+    isOnline: false,
+    url: 'https://www.facebook.com/IFEST.TUNISIA/',
+    source: 'facebook',
+    region: 'africa',
+    category: 'conference',
+    qualityScore: 0.85,
+    isTunisia: true,
+    isCompetition: true,
+    prize: 'Médailles + Certificats + Voyage',
+    prizeType: 'honorary',
+    eligibility: 'Étudiants tunisiens et internationaux',
+    competitionStatus: 'open',
+    governorate: 'Tunis',
+    organizerType: 'ngo',
+    festivalType: 'cinema',
+    mediaType: 'mixed-image',
+    scrapedAt: new Date(),
+  },
+
+  // ═══════════════════════════════════════════
+  // 📸 مهرجانات الصورة والتصوير
+  // ═══════════════════════════════════════════
+
+  {
+    title: 'Jaou Photo Tunis — Festival d\'Art Contemporain',
+    description: 'Festival biennal d\'art contemporain dédié à la photographie, l\'image et le mouvement. Organisé par la Fondation Kamel Lazaar (KLF) avec l\'Institut Français de Tunisie. Expositions dans des lieux non-conventionnels à travers Tunis. Thème 2022: "The Endless Body". Prochaine édition 2024/2026.',
+    date: new Date('2026-10-01'),
+    endDate: new Date('2026-10-20'),
+    location: 'Multiple venues, Tunis (B7L9, IFT, espaces publics)',
+    isOnline: false,
+    url: 'https://jaou.tn/',
+    source: 'official-website',
+    region: 'africa',
+    category: 'conference',
+    qualityScore: 0.91,
+    isTunisia: true,
+    isCompetition: false,
+    competitionStatus: 'upcoming',
+    governorate: 'Tunis',
+    organizerType: 'ngo',
+    festivalType: 'photo',
+    mediaType: 'photo',
+    scrapedAt: new Date(),
+  },
+
+  {
+    title: 'Festival des Arts Plastiques de Mahrès — Sfax',
+    description: 'Festival annuel des arts plastiques et de la photographie organisé à Mahrès (Sfax). Expositions de peinture, sculpture et photographie. Artistes tunisiens et internationaux. Juillet-Août.',
+    date: new Date('2026-07-15'),
+    endDate: new Date('2026-08-15'),
+    location: 'Mahrès, Sfax',
+    isOnline: false,
+    url: 'https://tunis.events/en/festivals-tunisie',
+    source: 'official-website',
+    region: 'africa',
+    category: 'conference',
+    qualityScore: 0.78,
+    isTunisia: true,
+    isCompetition: false,
+    competitionStatus: 'upcoming',
+    governorate: 'Sfax',
+    organizerType: 'ministry',
+    festivalType: 'photo',
+    mediaType: 'photo',
+    scrapedAt: new Date(),
+  },
+
+  {
+    title: 'Dream City — Festival d\'Art dans l\'Espace Public (Tunis)',
+    description: 'Festival biennal d\'art contemporain dans l\'espace public de Tunis. Organisé par L\'Art Rue. Performances, installations, vidéo art, photographie dans la Médina et les quartiers populaires. Prochaine édition attendue 2025/2026.',
+    date: new Date('2026-11-01'),
+    location: 'Médina de Tunis + quartiers populaires',
+    isOnline: false,
+    url: 'https://tunis.events/en/festivals-tunisie/dream-city',
+    source: 'official-website',
+    region: 'africa',
+    category: 'conference',
+    qualityScore: 0.88,
+    isTunisia: true,
+    isCompetition: false,
+    competitionStatus: 'upcoming',
+    governorate: 'Tunis',
+    organizerType: 'ngo',
+    festivalType: 'mixed-image',
+    mediaType: 'mixed-image',
+    scrapedAt: new Date(),
+  },
+
+  // ═══════════════════════════════════════════
+  // 🎭 مهرجانات الثقافة والفنون بالولايات
+  // ═══════════════════════════════════════════
+
+  {
+    title: 'Festival International de Carthage 2026',
+    description: 'Plus grand festival culturel de Tunisie. Musique, théâtre, danse et arts du spectacle dans l\'amphithéâtre romain de Carthage. Artistes tunisiens et internationaux de renommée mondiale. Juillet-Août annuellement.',
+    date: new Date('2026-07-01'),
+    endDate: new Date('2026-08-31'),
+    location: 'Amphithéâtre de Carthage, Tunis',
+    isOnline: false,
+    url: 'https://tunis.events/en/festivals-tunisie/festival-de-carthage',
+    source: 'official-website',
+    region: 'africa',
+    category: 'conference',
+    qualityScore: 0.93,
+    isTunisia: true,
+    isCompetition: false,
+    competitionStatus: 'upcoming',
+    governorate: 'Tunis',
+    organizerType: 'ministry',
+    festivalType: 'mixed-image',
+    mediaType: 'all',
+    scrapedAt: new Date(),
+  },
+
+  {
+    title: 'Festival International de Hammamet 2026 (60ème édition)',
+    description: '60ème édition du festival international d\'Hammamet. Musique, théâtre, danse. L\'un des festivals les plus anciens du monde arabe. Juillet-Août 2026.',
+    date: new Date('2026-07-01'),
+    endDate: new Date('2026-08-31'),
+    location: 'Centre Culturel International de Hammamet, Nabeul',
+    isOnline: false,
+    url: 'https://tunis.events/en/festivals-tunisie/festival-de-hammamet',
+    source: 'official-website',
+    region: 'africa',
+    category: 'conference',
+    qualityScore: 0.90,
+    isTunisia: true,
+    isCompetition: false,
+    competitionStatus: 'upcoming',
+    governorate: 'Nabeul',
+    organizerType: 'ministry',
+    festivalType: 'mixed-image',
+    mediaType: 'all',
+    scrapedAt: new Date(),
+  },
+
+  {
+    title: 'Festival International de Musique Symphonique — El Jem',
+    description: 'Festival de musique classique et symphonique dans l\'amphithéâtre romain d\'El Jem (patrimoine UNESCO). Orchestre symphonique tunisien et orchestres internationaux. Été annuellement.',
+    date: new Date('2026-07-20'),
+    location: 'Amphithéâtre El Jem, Mahdia',
+    isOnline: false,
+    url: 'https://tunis.events/en/festivals-tunisie/festival-de-el-jem',
+    source: 'official-website',
+    region: 'africa',
+    category: 'conference',
+    qualityScore: 0.87,
+    isTunisia: true,
+    isCompetition: false,
+    competitionStatus: 'upcoming',
+    governorate: 'Mahdia',
+    organizerType: 'ministry',
+    festivalType: 'mixed-image',
+    mediaType: 'all',
+    scrapedAt: new Date(),
+  },
+
+];
+
+export async function seedTunisiaFull(client: PrismaClient, disconnect = true) {
+  console.log('🇹🇳 Seeding full Tunisia events database...\n');
+
+  const deleted = await client.event.deleteMany({ where: { isTunisia: true } });
+  console.log(`🗑  Cleared ${deleted.count} old Tunisia events\n`);
+
+  const byType: Record<string, number> = {};
+
+  for (const event of TUNISIA_EVENTS) {
+    await client.event.create({ data: event as any });
+    const t = event.festivalType || 'other';
+    byType[t] = (byType[t] || 0) + 1;
+    const dot =
+      event.competitionStatus === 'open'
+        ? '🟢'
+        : event.competitionStatus === 'closed'
+        ? '🔴'
+        : '🟡';
+    console.log(`${dot} [${(event.festivalType ?? 'other').toUpperCase()}] ${event.title}`);
+  }
+
+  console.log('\n📊 Summary:');
+  Object.entries(byType).forEach(([type, count]) =>
+    console.log(`   ${type}: ${count}`)
+  );
+  console.log(`\n✅ Total: ${TUNISIA_EVENTS.length} Tunisia events seeded`);
+
+  if (disconnect) await client.$disconnect();
+
+  return { cleared: deleted.count, seeded: TUNISIA_EVENTS.length, byType };
+}
