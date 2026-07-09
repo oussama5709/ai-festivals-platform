@@ -11,20 +11,19 @@ import {
   upsertEvents,
 } from '../services/eventService';
 import { invalidateCache } from '../services/cacheService';
-import { sendTelegramAlert } from '../services/notificationService';
+import { sendTelegramAlert, notifyNewEvent, notifyDeadlineChange } from '../services/notificationService';
+import { runDiscoveryForNewEvents } from '../services/registrationDiscoveryService';
 import { withRetry, sleep, dbCircuit } from './retry';
 import { mapToEvent } from '../routes/webhook';
 
 const POLL_INTERVAL_MS = 30_000;
-const MAX_POLL_DURATION_MS = 15 * 60_000; // 15 min
+const MAX_POLL_DURATION_MS = 15 * 60_000;
 const MAX_RUN_ATTEMPTS = 3;
-const RETRY_DELAYS_MS = [5 * 60_000, 15 * 60_000, 45 * 60_000]; // 5, 15, 45 min
+const RETRY_DELAYS_MS = [5 * 60_000, 15 * 60_000, 45 * 60_000];
 
 function log(event: string, data?: object) {
   console.log(JSON.stringify({ ts: new Date().toISOString(), event, ...data }));
 }
-
-// ── Dataset fetch + upsert ────────────────────────────────────────────────────
 
 async function processDataset(datasetId: string): Promise<number> {
   const items = await withRetry(
@@ -32,28 +31,37 @@ async function processDataset(datasetId: string): Promise<number> {
     { maxAttempts: 3, baseDelayMs: 5_000, label: 'fetchDataset' }
   );
 
-  // Reuse the same dual-schema mapper used by the webhook route
   const mapped = (items as Record<string, unknown>[])
     .map(mapToEvent)
     .filter((e): e is NonNullable<ReturnType<typeof mapToEvent>> => e !== null);
 
   if (dbCircuit.isOpen()) {
-    log('pipeline.db.circuit_open — skipping upsert');
+    log('pipeline.db.circuit_open - skipping upsert');
     return 0;
   }
 
   try {
-    const saved = await upsertEvents(mapped);
+    const { saved, newEvents, deadlineChanges } = await upsertEvents(mapped);
     dbCircuit.onSuccess();
     invalidateCache();
+
+    for (const event of newEvents) {
+      notifyNewEvent(event);
+    }
+    for (const change of deadlineChanges) {
+      notifyDeadlineChange(change.event, change.kind, change.oldDeadline, change.newDeadline);
+    }
+
+    runDiscoveryForNewEvents(newEvents).catch((err) => {
+      log('pipeline.registration_discovery.error', { error: (err as Error).message });
+    });
+
     return saved;
   } catch (err) {
     dbCircuit.onFailure();
     throw err;
   }
 }
-
-// ── Poll until terminal status ────────────────────────────────────────────────
 
 async function pollUntilDone(runId: string): Promise<'SUCCEEDED' | 'FAILED' | 'TIMEOUT'> {
   const deadline = Date.now() + MAX_POLL_DURATION_MS;
@@ -66,8 +74,6 @@ async function pollUntilDone(runId: string): Promise<'SUCCEEDED' | 'FAILED' | 'T
   }
   return 'TIMEOUT';
 }
-
-// ── Single pipeline run ───────────────────────────────────────────────────────
 
 async function executePipelineRun(
   regions: string[],
@@ -95,7 +101,7 @@ async function executePipelineRun(
       errorMessage: 'Polling timed out after 15 minutes',
     });
     await sendTelegramAlert(
-      `⚠️ <b>AI Festivals — Scrape timeout</b>\nRun ${runId} did not complete in 15 min.`
+      `Scrape timeout: Run ${runId} did not complete in 15 min.`
     ).catch(() => {});
     log('pipeline.timeout', { runId, durationMs });
     return { success: false, saved: 0, durationMs };
@@ -112,7 +118,6 @@ async function executePipelineRun(
     return { success: false, saved: 0, durationMs };
   }
 
-  // SUCCEEDED
   const datasetId = await getRunDatasetId(runId);
   if (!datasetId) {
     await updateScrapeRun(runId, {
@@ -134,16 +139,14 @@ async function executePipelineRun(
   });
 
   await sendTelegramAlert(
-    `✅ <b>AI Festivals — Scrape complete</b>\n` +
-    `Saved <b>${saved}</b> events in ${Math.round(durationMs / 1000)}s.\n` +
+    `AI Festivals - Scrape complete\n` +
+    `Saved ${saved} events in ${Math.round(durationMs / 1000)}s.\n` +
     `Regions: ${regions.join(', ')}`
   ).catch(() => {});
 
   log('pipeline.succeeded', { runId, saved, durationMs });
   return { success: true, saved, durationMs };
 }
-
-// ── Public: run with full retry loop ─────────────────────────────────────────
 
 export async function runPipeline(
   regions = ['worldwide', 'middle-east', 'africa', 'europe', 'asia', 'americas'],
@@ -167,15 +170,14 @@ export async function runPipeline(
       } else {
         log('pipeline.exhausted', { attempts: MAX_RUN_ATTEMPTS });
         await sendTelegramAlert(
-          `🚨 <b>AI Festivals — Pipeline exhausted</b>\n` +
-          `All ${MAX_RUN_ATTEMPTS} attempts failed. Manual intervention needed.`
+          `Pipeline exhausted: All ${MAX_RUN_ATTEMPTS} attempts failed. Manual intervention needed.`
         ).catch(() => {});
       }
     } catch (err) {
       log('pipeline.error', { attempt, error: (err as Error).message });
       if (attempt === MAX_RUN_ATTEMPTS) {
         await sendTelegramAlert(
-          `🚨 <b>AI Festivals — Pipeline error</b>\n${(err as Error).message}`
+          `Pipeline error: ${(err as Error).message}`
         ).catch(() => {});
       } else {
         const delay = RETRY_DELAYS_MS[attempt - 1] ?? 300_000;

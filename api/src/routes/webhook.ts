@@ -3,7 +3,8 @@ import { PrismaClient, Prisma } from '@prisma/client';
 import { fetchDatasetItems } from '../services/apifyService';
 import { upsertEvents, updateScrapeRun, createScrapeRun } from '../services/eventService';
 import { invalidateCache } from '../services/cacheService';
-import { notifyUser, sendTelegramAlert } from '../services/notificationService';
+import { notifyNewEvent, notifyDeadlineChange, sendTelegramAlert } from '../services/notificationService';
+import { runDiscoveryForNewEvents } from '../services/registrationDiscoveryService';
 import { dbCircuit } from '../jobs/retry';
 import { updateHealthFromRun } from '../jobs/monitor';
 
@@ -13,8 +14,6 @@ const prisma = new PrismaClient();
 function log(event: string, data?: object) {
   console.log(JSON.stringify({ ts: new Date().toISOString(), event, ...data }));
 }
-
-// ── Region inference from address/location ────────────────────────────────────
 
 function inferRegion(loc: string): string {
   const l = loc.toLowerCase();
@@ -56,13 +55,7 @@ function parseDateRange(dates: string): { start: Date | null; end: Date | null }
   };
 }
 
-// ── Dual-schema mapper ────────────────────────────────────────────────────────
-// Handles both:
-//   A) New format: { title, url, date, location, region, category, qualityScore, ... }
-//   B) Actor format: { name, sitePage, address, dates, category, source, ... }
-
 export function mapToEvent(item: Record<string, unknown>): Prisma.EventCreateInput | null {
-  // Detect format by key presence
   const isActorFormat = typeof item['name'] === 'string' && !item['title'];
 
   let title: string;
@@ -81,7 +74,6 @@ export function mapToEvent(item: Record<string, unknown>): Prisma.EventCreateInp
     if (!title || title.length < 3) return null;
 
     const siteUrl = String(item['sitePage'] ?? item['regLink'] ?? '');
-    // Skip LinkedIn login redirects / garbage URLs
     if (siteUrl.includes('linkedin.com/checkpoint') || siteUrl.includes('login')) return null;
 
     url = siteUrl || null;
@@ -127,8 +119,6 @@ export function mapToEvent(item: Record<string, unknown>): Prisma.EventCreateInp
   };
 }
 
-// ── Core processing logic (shared by webhook + manual ingest) ─────────────────
-
 async function processItems(
   items: Record<string, unknown>[],
   runId: string
@@ -141,28 +131,32 @@ async function processItems(
   }
 
   try {
-    const saved = await upsertEvents(mapped);
+    const { saved, newEvents, deadlineChanges } = await upsertEvents(mapped);
     dbCircuit.onSuccess();
     invalidateCache();
 
-    for (const event of mapped) {
-      if (
-        event.title.includes('Film') || event.title.includes('Cinema') ||
-        event.title.includes('فيلم') || event.title.includes('سينما')
-      ) {
-        notifyUser(event);
-      }
+    for (const event of newEvents) {
+      notifyNewEvent(event);
     }
 
-    log('webhook.saved', { runId, total: items.length, mapped: mapped.length, saved });
+    for (const change of deadlineChanges) {
+      notifyDeadlineChange(change.event, change.kind, change.oldDeadline, change.newDeadline);
+    }
+
+    runDiscoveryForNewEvents(newEvents).catch((err) => {
+      log('webhook.registration_discovery.error', { error: (err as Error).message });
+    });
+
+    log('webhook.saved', {
+      runId, total: items.length, mapped: mapped.length, saved,
+      newEvents: newEvents.length, deadlineChanges: deadlineChanges.length,
+    });
     return saved;
   } catch (err) {
     dbCircuit.onFailure();
     throw err;
   }
 }
-
-// ── POST /api/webhook/apify — Apify platform webhook ─────────────────────────
 
 router.post('/apify', async (req: Request, res: Response) => {
   const { eventType, eventData } = req.body as {
@@ -173,7 +167,6 @@ router.post('/apify', async (req: Request, res: Response) => {
   const runId = eventData?.actorRunId;
   log('webhook.received', { eventType, runId });
 
-  // Idempotency
   try {
     const existing = await prisma.scrapeRun.findUnique({ where: { apifyRunId: runId } });
     if (existing?.status === 'succeeded') {
@@ -214,8 +207,8 @@ router.post('/apify', async (req: Request, res: Response) => {
     updateHealthFromRun('succeeded');
 
     await sendTelegramAlert(
-      `✅ <b>AI Festivals — Webhook processed</b>\n` +
-      `Saved <b>${saved}</b> events in ${Math.round(durationMs / 1000)}s.`
+      `AI Festivals - Webhook processed\n` +
+      `Saved ${saved} events in ${Math.round(durationMs / 1000)}s.`
     ).catch(() => {});
 
     res.json({ ok: true, saved });
@@ -226,9 +219,6 @@ router.post('/apify', async (req: Request, res: Response) => {
   }
 });
 
-// ── POST /api/webhook/apify/ingest — manual dataset ingestion ─────────────────
-// Body: { runId: string, datasetId: string }
-
 router.post('/apify/ingest', async (req: Request, res: Response) => {
   const { runId, datasetId } = req.body as { runId?: string; datasetId: string };
   const effectiveRunId = runId ?? `manual-${Date.now()}`;
@@ -238,7 +228,6 @@ router.post('/apify/ingest', async (req: Request, res: Response) => {
   try {
     const items = await fetchDatasetItems(datasetId) as Record<string, unknown>[];
 
-    // Ensure ScrapeRun record exists
     try {
       await createScrapeRun(effectiveRunId, ['worldwide']);
     } catch { /* already exists */ }

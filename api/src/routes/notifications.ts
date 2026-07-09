@@ -1,18 +1,9 @@
 import { Router, Request, Response } from 'express';
-import webpush from 'web-push';
 import { PrismaClient } from '@prisma/client';
+import { PUSH_CONFIGURED } from '../services/pushService';
 
 const router = Router();
 const prisma = new PrismaClient();
-
-// Configure VAPID — required before any push send
-if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails(
-    'mailto:admin@ai-festivals-platform.vercel.app',
-    process.env.VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY
-  );
-}
 
 // POST /api/notifications/push/subscribe
 router.post('/push/subscribe', async (req: Request, res: Response) => {
@@ -62,41 +53,22 @@ router.delete('/push/unsubscribe', async (req: Request, res: Response) => {
 // GET /api/notifications/vapid-public-key
 router.get('/vapid-public-key', (_req: Request, res: Response) => {
   const key = process.env.VAPID_PUBLIC_KEY;
-  if (!key) return res.status(503).json({ error: 'Push not configured' });
+  if (!PUSH_CONFIGURED || !key) {
+    return res.status(503).json({ error: 'Push not configured' });
+  }
   res.json({ publicKey: key });
 });
 
-// ── Export helper for internal use ────────────────────────────────────────────
-
-export async function sendPushToTopic(topic: string, payload: {
-  title: string;
-  body: string;
-  icon?: string;
-  url?: string;
-}): Promise<void> {
-  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) return;
-
-  const subs = await prisma.pushSubscription.findMany({
-    where: { topics: { has: topic } },
+// GET /api/notifications/status — quick diagnostic so the dashboard/admin can see
+// at a glance which notification channels are actually wired up.
+router.get('/status', (_req: Request, res: Response) => {
+  res.json({
+    push: PUSH_CONFIGURED,
+    telegram: Boolean(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID),
+    whatsapp: Boolean(
+      process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_WHATSAPP_NUMBER
+    ),
   });
-
-  const results = await Promise.allSettled(
-    subs.map((sub) =>
-      webpush.sendNotification(
-        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-        JSON.stringify(payload)
-      ).catch(async (err: any) => {
-        // 410 Gone = subscription expired, remove it
-        if (err.statusCode === 410) {
-          await prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(() => {});
-        }
-        throw err;
-      })
-    )
-  );
-
-  const failed = results.filter((r) => r.status === 'rejected').length;
-  console.log(`[push] sent to ${results.length - failed}/${results.length} subscribers on topic "${topic}"`);
-}
+});
 
 export default router;

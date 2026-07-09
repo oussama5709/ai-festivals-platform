@@ -1,6 +1,14 @@
 import { PrismaClient, Prisma } from '@prisma/client';
+import { computeRegistrationStatus, resolveEffectiveDates, RegistrationStatus } from './registrationStatusService';
 
 const prisma = new PrismaClient();
+
+const REGISTRATION_LINKS_INCLUDE = {
+  registrationLinks: {
+    where: { isActive: true },
+    orderBy: { confidence: 'desc' as const },
+  },
+};
 
 export interface EventQuery {
   region?: string;
@@ -17,6 +25,27 @@ export interface EventQuery {
   openCompetitions?: boolean;
   hasCfp?: boolean;
   isTunisia?: boolean;
+  registrationStatus?: string;
+}
+
+function withLiveRegistrationStatus<
+  T extends {
+    registrationOpensAt: Date | null;
+    registrationClosesAt: Date | null;
+    submissionDeadline: Date | null;
+    cfpDeadline: Date | null;
+    registrationStatus: string | null;
+  }
+>(event: T): T & { registrationStatus: RegistrationStatus } {
+  const { opensAt, closesAt } = resolveEffectiveDates(event);
+  const status = computeRegistrationStatus({
+    opensAt,
+    closesAt,
+    cancelled: event.registrationStatus === 'cancelled',
+    waitingList: event.registrationStatus === 'waiting_list',
+    invitationOnly: event.registrationStatus === 'invitation_only',
+  });
+  return { ...event, registrationStatus: status };
 }
 
 export async function queryEvents(q: EventQuery) {
@@ -50,6 +79,9 @@ export async function queryEvents(q: EventQuery) {
   if (q.isOnline !== undefined) {
     where.isOnline = q.isOnline;
   }
+  if (q.isFree) {
+    where.isFree = true;
+  }
   if (q.openCompetitions) {
     where.isCompetition = true;
     where.competitionStatus = 'open';
@@ -61,18 +93,24 @@ export async function queryEvents(q: EventQuery) {
   if (q.isTunisia) {
     where.isTunisia = true;
   }
+  if (q.registrationStatus) {
+    const statuses = q.registrationStatus.split(',').map((s) => s.trim()).filter(Boolean);
+    if (statuses.length > 0) {
+      where.registrationStatus = { in: statuses };
+    }
+  }
 
   let orderBy: Prisma.EventOrderByWithRelationInput = { date: 'asc' };
   if (q.sort === 'quality') orderBy = { qualityScore: 'desc' };
   if (q.sort === 'date') orderBy = { date: 'asc' };
 
   const [events, total] = await Promise.all([
-    prisma.event.findMany({ where, orderBy, skip, take: limit }),
+    prisma.event.findMany({ where, orderBy, skip, take: limit, include: REGISTRATION_LINKS_INCLUDE }),
     prisma.event.count({ where }),
   ]);
 
   return {
-    events,
+    events: events.map(withLiveRegistrationStatus),
     total,
     page,
     totalPages: Math.ceil(total / limit),
@@ -80,29 +118,85 @@ export async function queryEvents(q: EventQuery) {
 }
 
 export async function getEventById(id: string) {
-  return prisma.event.findUnique({ where: { id } });
+  const event = await prisma.event.findUnique({ where: { id }, include: REGISTRATION_LINKS_INCLUDE });
+  return event ? withLiveRegistrationStatus(event) : null;
 }
 
-export async function upsertEvents(items: Prisma.EventCreateInput[]) {
+function dedupKeyFor(item: Prisma.EventCreateInput): string {
+  return item.url ?? `__no_url__${item.title}__${item.date?.toString() ?? ''}`;
+}
+
+export interface DeadlineChange {
+  event: Prisma.EventCreateInput & { id: string; url: string };
+  kind: 'submission' | 'cfp';
+  oldDeadline: Date | null;
+  newDeadline: Date | null;
+}
+
+export interface UpsertResult {
+  saved: number;
+  newEvents: (Prisma.EventCreateInput & { id: string; url: string })[];
+  deadlineChanges: DeadlineChange[];
+}
+
+export async function upsertEvents(items: Prisma.EventCreateInput[]): Promise<UpsertResult> {
+  const keyed = items.map((item) => ({ item, key: dedupKeyFor(item) }));
+  const keys = keyed.map((k) => k.key);
+
+  const existing = await prisma.event.findMany({
+    where: { url: { in: keys } },
+    select: { url: true, submissionDeadline: true, cfpDeadline: true },
+  });
+  const existingByKey = new Map(existing.map((e) => [e.url as string, e]));
+
+  const newEvents: (Prisma.EventCreateInput & { id: string; url: string })[] = [];
+  const deadlineChanges: DeadlineChange[] = [];
+
   const results = await Promise.allSettled(
-    items.map((item) => {
-      if (item.url) {
-        // URL is unique — use it as the dedup key
-        return prisma.event.upsert({
-          where: { url: item.url },
-          update: { ...item },
-          create: item,
-        });
-      }
-      // No URL: insert-only, skip if identical title+date already exists
-      return prisma.event.upsert({
-        where: { url: `__no_url__${item.title}__${item.date?.toString() ?? ''}` },
+    keyed.map(async ({ item, key }) => {
+      const prior = existingByKey.get(key);
+      const saved = await prisma.event.upsert({
+        where: { url: key },
         update: { ...item },
-        create: { ...item, url: `__no_url__${item.title}__${item.date?.toString() ?? ''}` },
+        create: { ...item, url: key },
       });
+
+      if (!prior) {
+        newEvents.push({ ...item, id: saved.id, url: key });
+      } else {
+        if (dateDiffers(prior.submissionDeadline, item.submissionDeadline as Date | null | undefined)) {
+          deadlineChanges.push({
+            event: { ...item, id: saved.id, url: key },
+            kind: 'submission',
+            oldDeadline: prior.submissionDeadline,
+            newDeadline: (item.submissionDeadline as Date | null | undefined) ?? null,
+          });
+        }
+        if (dateDiffers(prior.cfpDeadline, item.cfpDeadline as Date | null | undefined)) {
+          deadlineChanges.push({
+            event: { ...item, id: saved.id, url: key },
+            kind: 'cfp',
+            oldDeadline: prior.cfpDeadline,
+            newDeadline: (item.cfpDeadline as Date | null | undefined) ?? null,
+          });
+        }
+      }
+
+      return saved;
     })
   );
-  return results.filter((r) => r.status === 'fulfilled').length;
+
+  return {
+    saved: results.filter((r) => r.status === 'fulfilled').length,
+    newEvents,
+    deadlineChanges,
+  };
+}
+
+function dateDiffers(a: Date | null | undefined, b: Date | null | undefined): boolean {
+  const at = a ? new Date(a).getTime() : null;
+  const bt = b ? new Date(b).getTime() : null;
+  return at !== bt;
 }
 
 export async function getStats() {
