@@ -26,7 +26,7 @@
         "asia",
         "americas"
       ],
-      "editor": "checkbox"
+      "editor": "select"
     },
     "upcomingOnly": {
       "title": "📅 الأحداث القادمة فقط | Only Upcoming Events",
@@ -71,7 +71,7 @@
         "meetup",
         "webinar"
       ],
-      "editor": "checkbox"
+      "editor": "select"
     },
     "dataSources": {
       "title": "🔗 مصادر البيانات | Data Sources",
@@ -92,7 +92,7 @@
         "meetup",
         "official-websites"
       ],
-      "editor": "checkbox"
+      "editor": "select"
     },
     "language": {
       "title": "🌐 اللغة | Language",

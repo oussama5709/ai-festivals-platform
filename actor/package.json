@@ -2,9 +2,9 @@
   "name": "ai-festivals-scraper",
   "version": "2.0.0",
   "description": "جامع ذكي لمهرجانات وأحداث الذكاء الاصطناعي من حول العالم - Intelligent scraper for AI festivals & events worldwide",
-  "main": "ai-festivals-scraper.js",
+  "main": "main.js",
   "scripts": {
-    "start": "node ai-festivals-scraper.js",
+    "start": "node main.js",
     "test": "node test.js",
     "push": "apify push",
     "local": "apify run --local"
