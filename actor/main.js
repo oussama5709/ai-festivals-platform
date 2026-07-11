@@ -3,7 +3,7 @@ const { scrapeTunisiaEvents } = require('./sources/tunisiaSource');
 
 // ── Hard-coded authoritative conferences (always include) ─────────────────────
 // These are the real, verified 2026 editions of major international AI/ML
-// conferences and summits. Dates/locations verified via web search on 2026-07-10.
+// conferences and summits. Dates/locations verified via web search on 2026-07-11.
 //
 // NOTE: This list needs a manual refresh once a year (each conference announces
 // its next edition's dates/venue ~6-12 months ahead). The three generic
