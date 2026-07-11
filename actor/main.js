@@ -66,11 +66,16 @@ function dedup(events) {
 
 Actor.main(async () => {
   const input = await Actor.getInput();
+  const today = new Date().toISOString().split('T')[0];
   const {
     searchRegions = ['worldwide', 'middle-east', 'africa', 'europe', 'asia', 'americas'],
-    minDate       = new Date().toISOString().split('T')[0],
+    minDate: inputMinDate = today,
     maxResults    = 300,
   } = input || {};
+  // Defense in depth: never show events that already happened, even if an old/stale
+  // minDate is supplied via input or a saved schedule config. The effective floor is
+  // always max(inputMinDate, today), so a leftover past-year date can't leak old events.
+  const minDate = inputMinDate > today ? inputMinDate : today;
 
   const dataset = await Actor.openDataset();
   console.log(`\n🚀 AI Festivals Scraper v3.0`);
