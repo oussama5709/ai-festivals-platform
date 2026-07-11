@@ -1,0 +1,29 @@
+name: Deploy actor to Apify
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'actor/**'
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Apify CLI
+        run: npm install -g apify-cli
+
+      - name: Deploy actor to Apify
+        working-directory: actor
+        env:
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+        run: |
+          apify login --token "$APIFY_TOKEN"
+          apify push --force
