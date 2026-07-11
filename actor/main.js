@@ -1,6 +1,5 @@
 const { Actor } = require('apify'); // SDK v3
 const { scrapeTunisiaEvents } = require('./sources/tunisiaSource');
-const { scrapeGlobalEvents } = require('./sources/globalEventSource');
 
 // ── Hard-coded authoritative conferences (always include) ─────────────────────
 // These are the real, verified 2026 editions of major international AI/ML
@@ -14,6 +13,13 @@ const { scrapeGlobalEvents } = require('./sources/globalEventSource');
 // domain-for-sale page, and wikicfp.com is blocked/untrusted. Rather than
 // scrape unreliable/dead sources, we rely on this curated list + the
 // dedicated Tunisia scraper (tunisiaSource.js), which is real and working.
+//
+// A global Meetup.com source (sources/globalEventSource.js) was added and
+// tested on 2026-07-11 but removed from this pipeline: Meetup's public
+// unauthenticated "find/events" REST endpoint returns 404 on every query
+// (Meetup migrated to a GraphQL API that requires OAuth around 2022). The
+// file is kept in sources/ for reference in case it's worth wiring up to
+// the authenticated GraphQL API later, but it is not called below.
 
 const HARDCODED = [
   { title: 'NeurIPS 2026',              date: '2026-12-06', endDate: '2026-12-12', location: 'Sydney, Australia',        url: 'https://neurips.cc/Conferences/2026',              category: 'conference', region: 'asia',        qualityScore: 0.98 },
@@ -91,15 +97,7 @@ Actor.main(async () => {
     else console.log(`  Tunisia source: failed (${tunisia[0].reason?.message})`);
   }
 
-  // 3. Global events source (Meetup.com + others) — only if worldwide or if no region filter is strict
-  if (searchRegions.includes('worldwide')) {
-    console.log('\n🌍 Scraping global events source (Meetup.com)...');
-    const global = await Promise.allSettled([scrapeGlobalEvents()]);
-    if (global[0].status === 'fulfilled') all.push(...global[0].value);
-    else console.log(`  Global events source: failed (${global[0].reason?.message})`);
-  }
-
-  // 4. Dedup + filter by date + cap
+  // 3. Dedup + filter by date + cap
   all = dedup(all);
   all = all.filter(e => {
     if (!e.date) return true;
@@ -107,7 +105,7 @@ Actor.main(async () => {
   });
   all = all.slice(0, maxResults);
 
-  // 5. Push to dataset
+  // 4. Push to dataset
   console.log(`\n📦 Pushing ${all.length} events to dataset...`);
   for (const ev of all) {
     await dataset.pushData(ev);
